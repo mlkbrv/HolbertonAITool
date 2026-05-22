@@ -38,7 +38,3 @@ services:
           type: web
           name: giftai-api
           property: host
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
