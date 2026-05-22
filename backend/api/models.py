@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -222,3 +223,101 @@ class DashboardInsight(models.Model):
 
     def __str__(self):
         return f'Insight {self.readiness_percent}%'
+
+
+class SubscriptionPlan(models.Model):
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=80)
+    price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    description = models.TextField(blank=True)
+    features = models.JSONField(default=list, blank=True)
+    cart_limit = models.PositiveSmallIntegerField(null=True, blank=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort_order']
+
+    def __str__(self):
+        return self.name
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.email} — {self.plan}'
+
+
+class Cart(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='cart',
+    )
+    session_key = models.CharField(max_length=64, blank=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Cart {self.user_id or self.session_key}'
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    gift_set = models.ForeignKey(GiftSet, on_delete=models.CASCADE)
+    quantity = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        unique_together = [('cart', 'gift_set')]
+
+    def __str__(self):
+        return f'{self.gift_set.title} x{self.quantity}'
+
+
+class Order(models.Model):
+    TYPE_CHOICES = [
+        ('gift', 'Gift'),
+        ('subscription', 'Subscription'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='orders')
+    order_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Order #{self.id} — {self.order_type}'
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    gift_set = models.ForeignKey(GiftSet, on_delete=models.SET_NULL, null=True)
+    quantity = models.PositiveSmallIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f'{self.gift_set} x{self.quantity}'

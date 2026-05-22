@@ -2,7 +2,10 @@ from datetime import date
 
 from rest_framework import serializers
 
+from django.contrib.auth.models import User
+
 from .models import (
+    CartItem,
     ChatMessage,
     CorporateOffer,
     DashboardInsight,
@@ -11,11 +14,15 @@ from .models import (
     GiftSet,
     Interest,
     Occasion,
+    Order,
+    OrderItem,
     PersonalityProfile,
     PersonalityTag,
     Recipient,
     RecipientGiftMatch,
     SavedGift,
+    SubscriptionPlan,
+    UserProfile,
 )
 
 
@@ -213,3 +220,86 @@ class OccasionCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+
+
+class SubscriptionPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubscriptionPlan
+        fields = [
+            'id',
+            'slug',
+            'name',
+            'price_monthly',
+            'description',
+            'features',
+            'cart_limit',
+        ]
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name']
+        read_only_fields = fields
+
+
+class RegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(min_length=6, write_only=True)
+    name = serializers.CharField(max_length=120, required=False, allow_blank=True)
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    gift_set = GiftSetSerializer(read_only=True)
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CartItem
+        fields = ['id', 'gift_set', 'quantity', 'line_total']
+
+    def get_line_total(self, obj):
+        return str(obj.gift_set.price * obj.quantity)
+
+
+class CartSerializer(serializers.Serializer):
+    items = CartItemSerializer(many=True)
+    total = serializers.DecimalField(max_digits=10, decimal_places=2)
+    item_count = serializers.IntegerField()
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    gift_set_title = serializers.CharField(source='gift_set.title', read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'gift_set_title', 'quantity', 'unit_price']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    plan_name = serializers.SerializerMethodField()
+
+    def get_plan_name(self, obj):
+        return obj.plan.name if obj.plan_id else None
+
+    class Meta:
+        model = Order
+        fields = [
+            'id',
+            'order_type',
+            'status',
+            'total',
+            'plan_name',
+            'items',
+            'created_at',
+        ]
+
+
+class MeSerializer(serializers.Serializer):
+    user = UserSerializer()
+    plan = SubscriptionPlanSerializer(allow_null=True)

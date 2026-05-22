@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { TopNav } from './components/TopNav';
 import { Sidebar } from './components/Sidebar';
 import { AppModal } from './components/AppModal';
+import { CartPanel } from './components/CartPanel';
+import { AccountPanel } from './components/AccountPanel';
 import { Toast } from './components/Toast';
 import { HomeView } from './views/HomeView';
 import { GiftDetectiveView } from './views/GiftDetectiveView';
@@ -12,6 +14,8 @@ import { NewOccasionView } from './views/NewOccasionView';
 import { AppPanel, RecipientFilter, ViewState } from './types';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { NavigationProvider } from './contexts/NavigationContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -77,17 +81,7 @@ function AppContent() {
 
         {panel === 'account' && (
           <AppModal title={t('panel.account')} onClose={() => setPanel(null)}>
-            <p className="text-sm text-on-surface-variant mb-4">{t('panel.accountDesc')}</p>
-            <div className="flex items-center gap-3 p-4 bg-surface-container rounded-2xl mb-4">
-              <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center font-bold text-primary">G</div>
-              <div>
-                <p className="font-semibold text-primary">Guest User</p>
-                <p className="text-xs text-on-surface-variant">guest@giftly.app</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => navigate('crm')} className="w-full py-3 bg-secondary text-on-secondary rounded-xl font-semibold">
-              {t('home.openDashboard')}
-            </button>
+            <AccountPanel onClose={() => setPanel(null)} />
           </AppModal>
         )}
 
@@ -102,10 +96,7 @@ function AppContent() {
 
         {panel === 'cart' && (
           <AppModal title={t('panel.cart')} onClose={() => setPanel(null)}>
-            <p className="text-sm text-on-surface-variant">{t('panel.cartEmpty')}</p>
-            <button type="button" onClick={() => navigate('gift-sets')} className="mt-4 w-full py-3 bg-accent text-on-accent rounded-xl font-semibold">
-              {t('nav.giftSets')}
-            </button>
+            <CartPanel onClose={() => setPanel(null)} />
           </AppModal>
         )}
 
@@ -118,7 +109,7 @@ function AppContent() {
         {panel === 'help' && (
           <AppModal title={t('sidebar.helpCenter')} onClose={() => setPanel(null)}>
             <p className="text-sm text-on-surface-variant mb-4">{t('panel.helpDesc')}</p>
-            <button type="button" onClick={() => navigate('detective')} className="w-full py-3 border border-secondary text-secondary rounded-xl font-semibold">
+            <button type="button" onClick={() => navigate('detective')} className="w-full py-3 border border-secondary text-secondary rounded-xl font-semibold cursor-pointer">
               {t('sidebar.detective')}
             </button>
           </AppModal>
@@ -133,7 +124,11 @@ function AppContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <AppContent />
+      <AuthProvider>
+        <CartProvider>
+          <AppContent />
+        </CartProvider>
+      </AuthProvider>
     </LanguageProvider>
   );
 }

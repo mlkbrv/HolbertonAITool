@@ -1,10 +1,13 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from api.models import (
+    Cart,
+    CartItem,
     ChatMessage,
     CorporateOffer,
     DashboardInsight,
@@ -13,11 +16,15 @@ from api.models import (
     GiftSet,
     Interest,
     Occasion,
+    Order,
+    OrderItem,
     PersonalityProfile,
     PersonalityTag,
     Recipient,
     RecipientGiftMatch,
     SavedGift,
+    SubscriptionPlan,
+    UserProfile,
 )
 
 
@@ -31,14 +38,83 @@ class Command(BaseCommand):
             help='Delete existing data and reseed',
         )
 
+    def _seed_plans_and_demo_user(self):
+        plans = [
+            {
+                'slug': 'free',
+                'name': 'Free',
+                'price_monthly': Decimal('0'),
+                'description': 'Get started with Giftly',
+                'features': ['3 items in cart', 'Basic Gift Detective', 'Calendar reminders'],
+                'cart_limit': 3,
+                'sort_order': 0,
+            },
+            {
+                'slug': 'concierge',
+                'name': 'Concierge',
+                'price_monthly': Decimal('19.00'),
+                'description': 'For thoughtful gifters',
+                'features': ['Unlimited cart', 'Priority AI matching', 'Saved gift lists'],
+                'cart_limit': None,
+                'sort_order': 1,
+            },
+            {
+                'slug': 'business',
+                'name': 'Business Elite',
+                'price_monthly': Decimal('49.00'),
+                'description': 'Corporate gifting at scale',
+                'features': ['CRM dashboard', 'Bulk orders', 'Team calendar sync', '15% corporate discount'],
+                'cart_limit': None,
+                'sort_order': 2,
+            },
+        ]
+        for p in plans:
+            SubscriptionPlan.objects.update_or_create(slug=p['slug'], defaults=p)
+
+        free = SubscriptionPlan.objects.get(slug='free')
+        demo_email = 'demo@giftly.app'
+        user, created = User.objects.get_or_create(
+            username=demo_email,
+            defaults={'email': demo_email, 'first_name': 'Demo User'},
+        )
+        if created:
+            user.set_password('demo1234')
+            user.save()
+        UserProfile.objects.update_or_create(user=user, defaults={'plan': free})
+        Cart.objects.get_or_create(user=user)
+        self.stdout.write(f'  Plans: {SubscriptionPlan.objects.count()}, demo user: {demo_email}')
+
+    def _seed_crm_extras(self):
+        if not CorporateOffer.objects.exists():
+            CorporateOffer.objects.create(
+                title='Q4 Enterprise Gifting',
+                description='Volume pricing for teams of 50+ with white-glove delivery.',
+                is_new=True,
+            )
+            self.stdout.write('  Created corporate offer')
+        if not DashboardInsight.objects.filter(is_active=True).exists():
+            DashboardInsight.objects.create(
+                readiness_percent=72,
+                quote="You're 72% ready for October. Consider finalizing Sarah's picnic set before the 24th.",
+                is_active=True,
+            )
+            self.stdout.write('  Created dashboard insight')
+
     @transaction.atomic
     def handle(self, *args, **options):
+        self._seed_plans_and_demo_user()
+        self._seed_crm_extras()
+
         if Recipient.objects.exists() and not options['force']:
-            self.stdout.write(self.style.WARNING('Data already exists — skip seed (use --force to reset).'))
+            self.stdout.write(self.style.WARNING('Catalog data exists — skip (use --force to reset).'))
             return
 
         self.stdout.write('Clearing existing data...')
         for model in [
+            OrderItem,
+            Order,
+            CartItem,
+            Cart,
             ChatMessage,
             DetectiveSession,
             SavedGift,

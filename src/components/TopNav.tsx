@@ -1,6 +1,7 @@
 import { Search, Bell, Gift, ShoppingCart, User, Menu } from 'lucide-react';
 import { ViewState, AppPanel, RecipientFilter } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCart } from '../contexts/CartContext';
 import { Language } from '../i18n/translations';
 
 interface TopNavProps {
@@ -21,6 +22,7 @@ export function TopNav({
   onToggleMobileNav,
 }: TopNavProps) {
   const { t, language, setLanguage } = useLanguage();
+  const { count } = useCart();
 
   return (
     <header className="fixed top-0 w-full z-50 bg-soft-cream/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm pointer-events-auto">
@@ -114,7 +116,11 @@ export function TopNav({
               className="p-2 hover:bg-surface-container-high/50 rounded-full transition-colors active:scale-95 duration-150 relative"
             >
               <ShoppingCart className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-secondary rounded-full border-2 border-soft-cream" />
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-soft-cream">
+                  {count > 9 ? '9+' : count}
+                </span>
+              )}
             </button>
             <button
               type="button"

@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Paperclip, Send, Sparkles, User, BrainCircuit } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useCart } from '../contexts/CartContext';
 import { api, ChatMessage, DetectiveSession, PersonalityProfile, unwrapList } from '../api/client';
 
 export function GiftDetectiveView() {
   const { t } = useLanguage();
-  const { navigate, showToast } = useNavigation();
+  const { navigate, showToast, openPanel } = useNavigation();
+  const { addItem } = useCart();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [session, setSession] = useState<DetectiveSession | null>(null);
   const [profile, setProfile] = useState<PersonalityProfile | null>(null);
@@ -232,7 +234,23 @@ export function GiftDetectiveView() {
                  </div>
                </button>
 
-               <button type="button" onClick={() => navigate('gift-sets')} className="w-full mt-6 bg-accent text-on-accent py-4 rounded-xl font-semibold hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2 group shadow-accent/20 cursor-pointer">
+               <button
+                 type="button"
+                 onClick={async () => {
+                   if (topMatch?.id) {
+                     try {
+                       await addItem(topMatch.id);
+                       showToast(t('cart.added'));
+                       openPanel('cart');
+                     } catch (err) {
+                       showToast(err instanceof Error ? err.message : t('cart.error'));
+                     }
+                   } else {
+                     navigate('gift-sets');
+                   }
+                 }}
+                 className="w-full mt-6 bg-accent text-on-accent py-4 rounded-xl font-semibold hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2 group shadow-accent/20 cursor-pointer"
+               >
                  <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
                  {t('detective.finalize')}
                </button>

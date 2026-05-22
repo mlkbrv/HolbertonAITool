@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, UploadCloud, Link as L
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigation } from '../contexts/NavigationContext';
+import { useCart } from '../contexts/CartContext';
 import { api, Dashboard } from '../api/client';
 
 const DEMO_CURATED = [
@@ -18,7 +19,8 @@ const DEMO_OCCASIONS = [
 
 export function HomeView() {
   const { t } = useLanguage();
-  const { navigate, showToast } = useNavigation();
+  const { navigate, showToast, openPanel } = useNavigation();
+  const { addItem } = useCart();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
 
   useEffect(() => {
@@ -147,11 +149,9 @@ export function HomeView() {
           </div>
           <div className="flex gap-6 overflow-x-auto scroll-hide pb-8 -mx-6 px-6">
             {curated.map((gift: { id: number; title: string; edition_label?: string; price: string; match_percent: number; image_url: string }) => (
-              <button
+              <div
                 key={gift.id}
-                type="button"
-                onClick={() => navigate('gift-sets')}
-                className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 cursor-pointer text-left"
+                className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 text-left"
               >
                 <div className="h-64 relative overflow-hidden pointer-events-none">
                   <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={gift.image_url} alt={gift.title} />
@@ -166,9 +166,26 @@ export function HomeView() {
                     {gift.edition_label && <span className="px-2 py-0.5 bg-secondary-container/30 text-secondary text-[10px] font-bold rounded uppercase">{gift.edition_label}</span>}
                     <span className="text-xs text-on-surface-variant font-semibold">${gift.price}</span>
                   </div>
-                  <span className="block w-full py-3 border border-secondary text-secondary font-semibold rounded-xl text-center">{t('home.viewSet')}</span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => navigate('gift-sets')} className="flex-1 py-3 border border-secondary text-secondary font-semibold rounded-xl text-center cursor-pointer">{t('home.viewSet')}</button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await addItem(gift.id);
+                          showToast(t('cart.added'));
+                          openPanel('cart');
+                        } catch (err) {
+                          showToast(err instanceof Error ? err.message : t('cart.error'));
+                        }
+                      }}
+                      className="flex-1 py-3 bg-accent text-on-accent font-semibold rounded-xl text-center cursor-pointer"
+                    >
+                      {t('sets.addToBag')}
+                    </button>
+                  </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </section>

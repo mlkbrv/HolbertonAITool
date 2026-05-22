@@ -10,24 +10,31 @@ function resolveApiBase(): string {
     }
     if (raw.startsWith('/')) return raw.replace(/\/$/, '') || '/api';
   }
-  if (typeof window !== 'undefined') {
-    const { protocol, hostname } = window.location;
-    if (hostname.includes('giftai-api.onrender.com')) {
-      return `${protocol}//${hostname}/api`;
-    }
-    if (hostname.includes('onrender.com') && !hostname.includes('giftai-api')) {
-      return 'https://giftai-api.onrender.com/api';
-    }
-  }
   return '/api';
 }
 
 const API_BASE = resolveApiBase();
 
+function getCsrfToken(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/csrftoken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : '';
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const method = (options?.method || 'GET').toUpperCase();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options?.headers as Record<string, string>),
+  };
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    const csrf = getCsrfToken();
+    if (csrf) headers['X-CSRFToken'] = csrf;
+  }
   const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    credentials: 'include',
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -127,6 +134,51 @@ export interface Dashboard {
   calendar_insight: { readiness_percent: number; quote: string } | null;
 }
 
+export interface AuthUser {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+}
+
+export interface SubscriptionPlan {
+  id: number;
+  slug: string;
+  name: string;
+  price_monthly: string;
+  description: string;
+  features: string[];
+  cart_limit: number | null;
+}
+
+export interface MeResponse {
+  user: AuthUser | null;
+  plan: SubscriptionPlan | null;
+}
+
+export interface CartItemRow {
+  id: number;
+  gift_set: GiftSet;
+  quantity: number;
+  line_total: string;
+}
+
+export interface CartData {
+  items: CartItemRow[];
+  total: string | number;
+  item_count: number;
+}
+
+export interface OrderRow {
+  id: number;
+  order_type: string;
+  status: string;
+  total: string;
+  plan_name?: string;
+  items: { id: number; gift_set_title: string; quantity: number; unit_price: string }[];
+  created_at: string;
+}
+
 export const api = {
   health: () => request<{ status: string }>('/health/'),
   dashboard: () => request<Dashboard>('/dashboard/'),
@@ -157,6 +209,41 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  register: (email: string, password: string, name?: string) =>
+    request<MeResponse>('/auth/register/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name }),
+    }),
+  login: (email: string, password: string) =>
+    request<MeResponse>('/auth/login/', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  logout: () => request<{ detail: string }>('/auth/logout/', { method: 'POST' }),
+  me: () => request<MeResponse>('/auth/me/'),
+  getCart: () => request<CartData>('/cart/'),
+  addToCart: (giftSetId: number, quantity = 1) =>
+    request<CartData>('/cart/', {
+      method: 'POST',
+      body: JSON.stringify({ gift_set_id: giftSetId, quantity }),
+    }),
+  updateCartItem: (itemId: number, quantity: number) =>
+    request<CartData>(`/cart/items/${itemId}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ quantity }),
+    }),
+  removeCartItem: (itemId: number) =>
+    request<CartData>(`/cart/items/${itemId}/`, { method: 'DELETE' }),
+  clearCart: () => request<CartData>('/cart/clear/', { method: 'POST' }),
+  getPlans: () => request<SubscriptionPlan[]>('/plans/'),
+  checkoutGifts: () =>
+    request<OrderRow>('/checkout/gifts/', { method: 'POST', body: '{}' }),
+  checkoutSubscription: (planSlug: string) =>
+    request<{ order: OrderRow; me: MeResponse }>('/checkout/subscription/', {
+      method: 'POST',
+      body: JSON.stringify({ plan_slug: planSlug }),
+    }),
+  getOrders: () => request<OrderRow[]>('/orders/'),
 };
 
 export function unwrapList<T>(data: { results?: T[] } | T[]): T[] {

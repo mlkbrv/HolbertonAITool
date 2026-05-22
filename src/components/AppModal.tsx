@@ -16,7 +16,7 @@ export function AppModal({ title, onClose, children }: AppModalProps) {
         onClick={onClose}
         aria-label="Close"
       />
-      <div className="relative z-[71] w-full max-w-md bg-white rounded-3xl shadow-2xl border border-outline-variant/20 p-6">
+      <div className="relative z-[71] w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-outline-variant/20 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-serif font-bold text-primary">{title}</h2>
           <button

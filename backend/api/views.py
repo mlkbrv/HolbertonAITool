@@ -2,6 +2,8 @@ from datetime import date, timedelta
 
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -184,6 +186,7 @@ class DashboardView(APIView):
         return Response(DashboardSerializer(payload).data)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class HealthView(APIView):
     def get(self, request):
         return Response({'status': 'ok', 'service': 'giftai-api'})
