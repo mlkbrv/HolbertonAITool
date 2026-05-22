@@ -3,8 +3,19 @@ import { SlidersHorizontal, Sparkles, Heart } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
 import { api, GiftSet, unwrapList } from '../api/client';
+import { RecipientFilter } from '../types';
 
-export function GiftSetsView() {
+interface GiftSetsViewProps {
+  recipientFilter: RecipientFilter | null;
+}
+
+const FILTER_MATCH: Record<RecipientFilter, RegExp> = {
+  mom: /mom|ana|мама/i,
+  partner: /partner|partnyor|партнер/i,
+  colleague: /colleague|həmkar|коллег/i,
+};
+
+export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
   const { t } = useLanguage();
   const [sensitivity, setSensitivity] = useState(50);
   const [gifts, setGifts] = useState<GiftSet[]>([]);
@@ -12,6 +23,14 @@ export function GiftSetsView() {
   useEffect(() => {
     api.giftSets().then((data) => setGifts(unwrapList(data))).catch(() => setGifts([]));
   }, []);
+
+  const visibleGifts = recipientFilter
+    ? gifts.filter(
+        (g) =>
+          FILTER_MATCH[recipientFilter].test(g.recipient_label) ||
+          FILTER_MATCH[recipientFilter].test(g.subtitle)
+      )
+    : gifts;
 
   return (
     <>
@@ -114,7 +133,7 @@ export function GiftSetsView() {
           {/* Product Grid */}
           <div className="flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {gifts.map((gift) =>
+              {visibleGifts.map((gift) =>
                 gift.is_featured ? (
                   <div key={gift.id} className="group bg-primary-container rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full lg:col-span-2 relative cursor-pointer">
                     <div className="absolute inset-0">

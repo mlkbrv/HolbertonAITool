@@ -49,7 +49,7 @@ export function GiftDetectiveView() {
   const topMatch = profile?.top_match?.gift_set;
 
   return (
-    <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden bg-soft-cream/40">
+    <div className="min-h-[calc(100vh-6rem)] w-full flex flex-col md:flex-row overflow-hidden bg-soft-cream/40">
       
       {/* Left Chat Area */}
       <section className="flex-1 flex flex-col border-r border-outline-variant/10 relative h-full">
