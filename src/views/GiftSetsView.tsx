@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SlidersHorizontal, Sparkles, Heart } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { api, GiftSet, unwrapList } from '../api/client';
 import { RecipientFilter } from '../types';
 
@@ -17,6 +18,7 @@ const FILTER_MATCH: Record<RecipientFilter, RegExp> = {
 
 export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
   const { t } = useLanguage();
+  const { navigate, showToast } = useNavigation();
   const [sensitivity, setSensitivity] = useState(50);
   const [gifts, setGifts] = useState<GiftSet[]>([]);
 
@@ -48,7 +50,7 @@ export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
               <h1 className="text-4xl font-serif font-bold text-primary mb-2">{t('sets.title')}</h1>
               <p className="text-lg text-on-surface-variant">{t('sets.subtitle')}</p>
             </div>
-            <button className="flex items-center gap-2 px-6 py-2.5 bg-white border border-outline-variant/60 rounded-full text-sm font-semibold hover:bg-surface transition-all">
+            <button type="button" onClick={() => showToast(t('sets.filter'))} className="flex items-center gap-2 px-6 py-2.5 bg-white border border-outline-variant/60 rounded-full text-sm font-semibold hover:bg-surface transition-all cursor-pointer">
               <SlidersHorizontal className="w-4 h-4" />
               {t('sets.filter')}
             </button>
@@ -135,7 +137,7 @@ export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {visibleGifts.map((gift) =>
                 gift.is_featured ? (
-                  <div key={gift.id} className="group bg-primary-container rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full lg:col-span-2 relative cursor-pointer">
+                  <button type="button" key={gift.id} onClick={() => showToast(gift.title)} className="group bg-primary-container rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full lg:col-span-2 relative cursor-pointer text-left">
                     <div className="absolute inset-0">
                       <img src={gift.image_url} className="w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 group-hover:scale-105" alt={gift.title} />
                       <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent"></div>
@@ -149,16 +151,16 @@ export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
                             <p className="text-base text-white/80 mb-2">{gift.description}</p>
                             <p className="text-2xl font-serif font-bold">${gift.price}</p>
                           </div>
-                          <button className="px-8 py-3 bg-white text-primary rounded-full text-sm font-bold hover:bg-white/90 transition-all flex items-center gap-2 w-max">
+                          <span className="px-8 py-3 bg-white text-primary rounded-full text-sm font-bold flex items-center gap-2 w-max">
                             <Sparkles className="w-4 h-4 fill-current text-primary" />
                             {t('sets.viewFull')}
-                          </button>
+                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ) : (
-                  <div key={gift.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
+                  <div key={gift.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full">
                     <div className="relative aspect-[4/5] overflow-hidden bg-surface-container-low">
                       <img src={gift.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={gift.title} />
                       <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
@@ -177,7 +179,7 @@ export function GiftSetsView({ recipientFilter }: GiftSetsViewProps) {
                       <p className="text-sm text-on-surface-variant line-clamp-2 mb-6">{gift.description}</p>
                       <div className="mt-auto flex items-center justify-between">
                         <span className="text-2xl font-serif font-bold text-primary">${gift.price}</span>
-                        <button className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors">{t('sets.addToBag')}</button>
+                        <button type="button" onClick={() => showToast(t('sets.addToBag'))} className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors cursor-pointer">{t('sets.addToBag')}</button>
                       </div>
                     </div>
                   </div>

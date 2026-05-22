@@ -6,7 +6,7 @@ databases:
 
 services:
   - type: web
-    name: giftai-api
+    name: giftai
     runtime: python
     rootDir: backend
     plan: free
@@ -26,15 +26,3 @@ services:
         value: "false"
       - key: RENDER
         value: "true"
-
-  - type: web
-    name: giftai-frontend
-    runtime: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: giftai-api
-          property: host

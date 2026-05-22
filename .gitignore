@@ -8,6 +8,7 @@ coverage/
 !.env.example
 backend/db.sqlite3
 backend/staticfiles/
+backend/frontend_dist/
 __pycache__/
 *.pyc
 .venv/

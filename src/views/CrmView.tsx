@@ -1,9 +1,11 @@
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { Briefcase, Users, TrendingUp } from 'lucide-react';
 
 export function CrmView() {
   const { t } = useLanguage();
+  const { navigate, showToast } = useNavigation();
 
   return (
     <>
@@ -19,21 +21,21 @@ export function CrmView() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <div className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center">
+          <button type="button" onClick={() => navigate('calendar')} className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center hover:shadow-md transition-all cursor-pointer">
             <Users className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="text-xl font-bold text-primary mb-2">Team Sync</h3>
             <p className="text-sm text-on-surface-variant">Import your team's birthdays and work anniversaries.</p>
-          </div>
-          <div className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center">
+          </button>
+          <button type="button" onClick={() => showToast('Client Relations')} className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center hover:shadow-md transition-all cursor-pointer">
             <TrendingUp className="w-8 h-8 text-primary mx-auto mb-3" />
             <h3 className="text-xl font-bold text-primary mb-2">Client Relations</h3>
             <p className="text-sm text-on-surface-variant">Track VIP gifts and automated follow-ups.</p>
-          </div>
-          <div className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center">
-             <div className="w-8 h-8 mx-auto mb-3 bg-secondary rounded-full flex items-center justify-center text-on-secondary font-bold">%</div>
+          </button>
+          <button type="button" onClick={() => navigate('gift-sets')} className="p-6 bg-white border border-outline-variant/20 rounded-3xl shadow-sm text-center hover:shadow-md transition-all cursor-pointer">
+            <div className="w-8 h-8 mx-auto mb-3 bg-secondary rounded-full flex items-center justify-center text-on-secondary font-bold">%</div>
             <h3 className="text-xl font-bold text-primary mb-2">Bulk Orders</h3>
             <p className="text-sm text-on-surface-variant">Get access to corporate discounts and bulk shipping.</p>
-          </div>
+          </button>
         </div>
       </div>
       <Footer />

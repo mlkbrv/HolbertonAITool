@@ -3,9 +3,11 @@ import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
 import { PlusCircle, Search, Calendar as CalendarIcon } from 'lucide-react';
 import { api, Recipient, unwrapList } from '../api/client';
+import { useNavigation } from '../contexts/NavigationContext';
 
 export function NewOccasionView() {
   const { t } = useLanguage();
+  const { navigate, showToast } = useNavigation();
   const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [title, setTitle] = useState('');
   const [recipientId, setRecipientId] = useState('');
@@ -28,11 +30,14 @@ export function NewOccasionView() {
         date,
       });
       setSubmitted(true);
+      showToast(t('sidebar.newOccasion'));
       setTitle('');
       setDate('');
       setRecipientId('');
+      setTimeout(() => navigate('calendar'), 1500);
     } catch {
       setSubmitted(false);
+      showToast('Error — try again');
     }
   };
 

@@ -1,19 +1,32 @@
 function resolveApiBase(): string {
-  const raw = (import.meta.env.VITE_API_URL || '/api').trim();
-  if (!raw || raw === '/api') return '/api';
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw.endsWith('/api') ? raw.replace(/\/$/, '') : `${raw.replace(/\/$/, '')}/api`;
+  const raw = (import.meta.env.VITE_API_URL || '').trim();
+  if (raw) {
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      const base = raw.replace(/\/$/, '');
+      return base.endsWith('/api') ? base : `${base}/api`;
+    }
+    if (raw.includes('.onrender.com')) {
+      return `https://${raw.replace(/^https?:\/\//, '')}/api`;
+    }
+    if (raw.startsWith('/')) return raw.replace(/\/$/, '') || '/api';
   }
-  if (raw.includes('.onrender.com')) {
-    return `https://${raw.replace(/^https?:\/\//, '').replace(/\/$/, '')}/api`;
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname } = window.location;
+    if (hostname.includes('giftai-api.onrender.com')) {
+      return `${protocol}//${hostname}/api`;
+    }
+    if (hostname.includes('onrender.com') && !hostname.includes('giftai-api')) {
+      return 'https://giftai-api.onrender.com/api';
+    }
   }
-  return raw.startsWith('/') ? raw : `/${raw}`;
+  return '/api';
 }
 
 const API_BASE = resolveApiBase();
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     ...options,
   });
@@ -120,7 +133,7 @@ export const api = {
   occasionsUpcoming: () => request<{ results?: Occasion[] } | Occasion[]>('/occasions/?upcoming=true'),
   occasionsCalendar: () => request<Occasion[]>('/occasions/calendar/'),
   giftSets: (query = '') =>
-    request<{ results?: GiftSet[] } | GiftSet[]>(`/gift-sets/${query ? `?${query}` : ''}`),
+    request<{ results?: GiftSet[] } | GiftSet[]>(query ? `/gift-sets/?${query}` : '/gift-sets/'),
   giftSetsCurated: () => request<GiftSet[]>('/gift-sets/curated/'),
   savedGifts: () => request<{ results?: SavedGift[] } | SavedGift[]>('/saved-gifts/'),
   recipients: () => request<{ results?: Recipient[] } | Recipient[]>('/recipients/'),

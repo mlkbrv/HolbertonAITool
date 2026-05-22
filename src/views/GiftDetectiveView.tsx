@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Paperclip, Send, Sparkles, User, BrainCircuit } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { api, ChatMessage, DetectiveSession, PersonalityProfile, unwrapList } from '../api/client';
 
 export function GiftDetectiveView() {
   const { t } = useLanguage();
+  const { navigate, showToast } = useNavigation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [session, setSession] = useState<DetectiveSession | null>(null);
   const [profile, setProfile] = useState<PersonalityProfile | null>(null);
@@ -93,7 +95,12 @@ export function GiftDetectiveView() {
                   {msg.options && (
                      <div className="mt-4 flex flex-wrap gap-2">
                         {msg.options.map((opt: string, i: number) => (
-                          <button key={i} className="px-4 py-2 bg-white/70 hover:bg-white border border-ai-glow/20 hover:border-ai-glow/50 rounded-full text-xs font-semibold text-primary transition-all shadow-sm">
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setInputValue(opt); showToast(opt); }}
+                            className="px-4 py-2 bg-white/70 hover:bg-white border border-ai-glow/20 hover:border-ai-glow/50 rounded-full text-xs font-semibold text-primary transition-all shadow-sm cursor-pointer"
+                          >
                             {opt}
                           </button>
                         ))}
@@ -125,13 +132,14 @@ export function GiftDetectiveView() {
             />
             
             <div className="absolute right-2 flex items-center gap-1">
-              <button className="p-2.5 hover:bg-surface-container-low rounded-xl text-on-surface-variant transition-colors group">
+              <button type="button" onClick={() => showToast(t('detective.dragdrop'))} className="p-2.5 hover:bg-surface-container-low rounded-xl text-on-surface-variant transition-colors group cursor-pointer">
                 <Paperclip className="w-5 h-5 group-hover:text-primary" />
               </button>
-              <button 
+              <button
+                type="button"
                 onClick={handleSend}
                 disabled={!inputValue.trim()}
-                className="bg-accent text-on-accent p-2.5 px-5 rounded-xl flex items-center gap-2 hover:opacity-90 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="bg-accent text-on-accent p-2.5 px-5 rounded-xl flex items-center gap-2 hover:opacity-90 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
               >
                 {t('detective.send')} <Send className="w-4 h-4 ml-1" />
               </button>
@@ -150,7 +158,7 @@ export function GiftDetectiveView() {
             <header className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-3xl font-serif font-bold text-primary">{t('detective.profile')}</h3>
-                <button className="text-secondary text-sm font-semibold hover:underline">{t('detective.editBase')}</button>
+                <button type="button" onClick={() => showToast(t('detective.editBase'))} className="text-secondary text-sm font-semibold hover:underline cursor-pointer">{t('detective.editBase')}</button>
               </div>
               <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-xl border border-outline-variant/20">
                  <div className="h-1.5 bg-background flex-grow rounded-full overflow-hidden shrink-0 basis-1/2">
@@ -201,7 +209,7 @@ export function GiftDetectiveView() {
             <div className="mt-auto">
                <h4 className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-4">{t('detective.topMatches')}</h4>
                
-               <div className="group relative bg-surface-container-low rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-outline-variant/10 cursor-pointer">
+               <button type="button" onClick={() => navigate('gift-sets')} className="w-full group relative bg-surface-container-low rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-outline-variant/10 cursor-pointer text-left">
                  <div className="h-40 overflow-hidden relative">
                    <img 
                       src={topMatch?.image_url || 'https://images.unsplash.com/photo-1544256428-251d5c2ee0cb?q=80&w=600&auto=format&fit=crop'} 
@@ -222,9 +230,9 @@ export function GiftDetectiveView() {
                      </span>
                    </div>
                  </div>
-               </div>
+               </button>
 
-               <button className="w-full mt-6 bg-accent text-on-accent py-4 rounded-xl font-semibold hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2 group shadow-accent/20">
+               <button type="button" onClick={() => navigate('gift-sets')} className="w-full mt-6 bg-accent text-on-accent py-4 rounded-xl font-semibold hover:shadow-xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center justify-center gap-2 group shadow-accent/20 cursor-pointer">
                  <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
                  {t('detective.finalize')}
                </button>

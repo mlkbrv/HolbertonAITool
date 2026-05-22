@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, Bookmark, ArrowRight, Sparkles } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useNavigation } from '../contexts/NavigationContext';
 import { api, Dashboard, SavedGift, unwrapList } from '../api/client';
 
 export function CalendarView() {
   const { t } = useLanguage();
+  const { navigate, showToast } = useNavigation();
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const [saved, setSaved] = useState<SavedGift[]>([]);
   const [insight, setInsight] = useState<Dashboard['calendar_insight']>(null);
@@ -24,9 +26,9 @@ export function CalendarView() {
             <p className="text-lg text-on-surface-variant">{t('calendar.subtitle')}</p>
           </div>
           <div className="flex items-center gap-4 glass-effect p-2 rounded-2xl w-full md:w-auto overflow-x-auto">
-            <button className="p-2 hover:bg-surface-container-high rounded-xl transition-colors"><ChevronLeft className="w-5 h-5" /></button>
+            <button type="button" onClick={() => showToast('←')} className="p-2 hover:bg-surface-container-high rounded-xl transition-colors cursor-pointer"><ChevronLeft className="w-5 h-5" /></button>
             <span className="text-sm font-bold px-4 whitespace-nowrap">{t('calendar.month')}</span>
-            <button className="p-2 hover:bg-surface-container-high rounded-xl transition-colors"><ChevronRight className="w-5 h-5" /></button>
+            <button type="button" onClick={() => showToast('→')} className="p-2 hover:bg-surface-container-high rounded-xl transition-colors cursor-pointer"><ChevronRight className="w-5 h-5" /></button>
           </div>
         </header>
 
@@ -111,7 +113,7 @@ export function CalendarView() {
               
               <div className="space-y-4">
                 {saved.map((item) => (
-                  <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 hover:-translate-y-1 transition-transform cursor-pointer group">
+                  <button type="button" key={item.id} onClick={() => navigate('gift-sets')} className="w-full bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 hover:-translate-y-1 transition-transform cursor-pointer group text-left">
                     <div className="flex gap-4">
                       <img src={item.gift_set.image_url} className="w-20 h-20 object-cover rounded-xl shrink-0" alt={item.gift_set.title} />
                       <div className="flex-1">
@@ -125,13 +127,13 @@ export function CalendarView() {
                         <p className="text-xs text-on-surface-variant">AI {t('home.match')}: {item.match_percent}%</p>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm font-bold">${item.gift_set.price}</span>
-                          <button className="text-ai-glow hover:underline text-xs font-bold flex items-center gap-1 group-hover:text-primary transition-colors">
+                          <span className="text-ai-glow text-xs font-bold flex items-center gap-1">
                             {t('calendar.finalize')} <ArrowRight className="w-3 h-3" />
-                          </button>
+                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
 
                 <div className="border-2 border-dashed border-outline-variant/40 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 bg-surface-container-low/50">
@@ -142,7 +144,7 @@ export function CalendarView() {
                      <p className="text-sm font-bold text-primary">{t('calendar.needIdeas')}</p>
                      <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">{t('calendar.scan')}</p>
                   </div>
-                  <button className="text-xs font-bold bg-white text-primary px-4 py-2 rounded-full border border-outline-variant/30 hover:bg-surface-container transition-all shadow-sm">
+                  <button type="button" onClick={() => navigate('detective')} className="text-xs font-bold bg-white text-primary px-4 py-2 rounded-full border border-outline-variant/30 hover:bg-surface-container transition-all shadow-sm cursor-pointer">
                     {t('calendar.ask')}
                   </button>
                 </div>

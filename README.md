@@ -28,6 +28,8 @@ npm run dev
 
 App: http://localhost:3000 (proxies `/api` → Django)
 
+**Production (Render):** one URL `https://giftai.onrender.com` — Django serves API + React app together.
+
 ## Mock data
 
 ```bash
@@ -51,20 +53,20 @@ Clears and repopulates recipients, gift sets, occasions, saved gifts, detective 
 
 ## Deploy on Render (free tier)
 
-Push repo → Render Dashboard → **New Blueprint** → select `render.yaml`.
+Push repo → **New Blueprint** → `render.yaml`.
 
-Everything is automatic:
+**One service `giftai`** — frontend + API on the same domain (no CORS, no broken assets).
 
-| Step | When | What |
-|------|------|------|
-| Build | deploy | `pip install`, `collectstatic` |
-| Start | every boot | `migrate` → `seed_mock_data` (only if DB empty) → gunicorn |
-| CORS / hosts | auto | `*.onrender.com` + linked frontend URL |
-| Frontend API URL | auto | `VITE_API_URL` from `giftai-api` service |
+| Step | What |
+|------|------|
+| Build | `npm build` → copy to Django → `collectstatic` |
+| Start | `migrate` → `seed` → gunicorn |
 
-No manual env vars required for a standard Blueprint deploy.
+Open: `https://giftai.onrender.com`
 
-Reseed DB: Render Shell → `python manage.py seed_mock_data --force`
+Delete old separate `giftai-frontend` / `giftai-api` services if you had them before.
+
+Reseed DB: Shell → `python manage.py seed_mock_data --force`
 
 ## Environment
 
