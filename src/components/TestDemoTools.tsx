@@ -139,8 +139,16 @@ export function TestDemoTools({ onNavigate, onOpenPanel }: TestDemoToolsProps) {
               disabled={busy}
               onClick={() =>
                 run(async () => {
-                  const h = await api.health();
-                  showToast(`API ok · AI: ${h.ai_enabled ? 'on' : 'off'} · user: ${isLoggedIn ? 'yes' : 'no'}`);
+                  const h = await api.health(true);
+                  const groq =
+                    h.groq_ok === true
+                      ? 'Groq OK'
+                      : h.groq_ok === false
+                        ? `Groq fail: ${h.groq_error || '?'}`
+                        : h.ai_enabled
+                          ? 'Groq not tested'
+                          : 'no key';
+                  showToast(`API ok · ${groq} · user: ${isLoggedIn ? 'yes' : 'no'}`);
                 })
               }
               className="w-full py-2 px-3 border border-white/20 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"

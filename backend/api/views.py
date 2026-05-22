@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -22,7 +23,13 @@ from .models import (
     RecipientGiftMatch,
     SavedGift,
 )
-from .groq_service import analyze_instagram_profile, generate_detective_reply, is_groq_configured
+from .groq_service import (
+    analyze_instagram_profile,
+    generate_detective_reply,
+    get_last_groq_error,
+    is_groq_configured,
+    ping_groq,
+)
 from .profile_analysis import apply_instagram_analysis
 from .social_sources import fetch_instagram_public_hints, parse_instagram_username
 from .serializers import (
@@ -230,12 +237,16 @@ class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 if hints
                 else ' Could not read public page (private/login wall).'
             )
+            err = get_last_groq_error()
             ai_text = (
                 f"I found **@{username}** on Instagram.{hint_note}\n\n"
                 'Based on typical lifestyle signals, I would look at **wellness**, '
-                '**coffee ritual**, or **experience** gifts. '
-                'Add **GROQ_API_KEY** for a deeper AI read of their profile.'
+                '**coffee ritual**, or **experience** gifts.'
             )
+            if err:
+                ai_text += f'\n\n_(AI: {err})_'
+            elif not is_groq_configured():
+                ai_text += '\n\n_Set **GROQ_API_KEY** on the server for deeper analysis._'
             ai_options = ['Wellness gift', 'Coffee & home', 'Experience']
             profile, _ = PersonalityProfile.objects.get_or_create(recipient=session.recipient)
             if hints:
@@ -319,8 +330,16 @@ class DashboardView(APIView):
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class HealthView(APIView):
     def get(self, request):
+        configured = is_groq_configured()
+        groq_ok = None
+        groq_error = get_last_groq_error()
+        if configured and request.query_params.get('groq_ping') == '1':
+            groq_ok, groq_error = ping_groq()
         return Response({
             'status': 'ok',
-            'service': 'giftai-api',
-            'ai_enabled': is_groq_configured(),
+            'service': 'giftai',
+            'ai_enabled': configured,
+            'groq_ok': groq_ok,
+            'groq_error': groq_error,
+            'groq_model': getattr(settings, 'GROQ_MODEL', ''),
         })

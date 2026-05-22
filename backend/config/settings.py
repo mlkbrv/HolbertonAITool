@@ -156,6 +156,16 @@ if RENDER_HOST:
     _render_origin = f'https://{RENDER_HOST}'
     if _render_origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_render_origin)
+
+for _legacy_origin in (
+    'https://giftai-frontend.onrender.com',
+    'https://giftai-api.onrender.com',
+    'https://giftai.onrender.com',
+):
+    if _legacy_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_legacy_origin)
+    if _legacy_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_legacy_origin)
 if _frontend and _frontend not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_frontend.rstrip('/'))
 

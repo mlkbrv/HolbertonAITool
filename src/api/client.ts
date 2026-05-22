@@ -1,24 +1,44 @@
+const UNIFIED_RENDER_API = 'https://giftai.onrender.com';
+
+const LEGACY_FRONTEND_HOSTS: Record<string, string> = {
+  'giftai-frontend.onrender.com': UNIFIED_RENDER_API,
+  'giftai-api.onrender.com': UNIFIED_RENDER_API,
+};
+
+function normalizeApiBase(originOrPath: string): string {
+  const base = originOrPath.replace(/\/$/, '');
+  return base.endsWith('/api') ? base : `${base}/api`;
+}
+
 function resolveApiBase(): string {
   const raw = (import.meta.env.VITE_API_URL || '').trim();
-  const useSameOrigin = !raw || raw === '/api' || raw === '/api/';
+  const apiOrigin = (import.meta.env.VITE_API_ORIGIN || '').trim();
 
-  if (useSameOrigin && typeof window !== 'undefined') {
-    return `${window.location.origin}/api`;
+  if (typeof window !== 'undefined') {
+    const legacyApi = LEGACY_FRONTEND_HOSTS[window.location.hostname];
+    if (legacyApi) {
+      return normalizeApiBase(legacyApi);
+    }
+    if (apiOrigin) {
+      return normalizeApiBase(apiOrigin.startsWith('http') ? apiOrigin : `https://${apiOrigin}`);
+    }
+    if (!raw || raw === '/api' || raw === '/api/') {
+      return normalizeApiBase(window.location.origin);
+    }
   }
 
   if (raw) {
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      const base = raw.replace(/\/$/, '');
-      return base.endsWith('/api') ? base : `${base}/api`;
+      return normalizeApiBase(raw);
     }
     if (raw.includes('.onrender.com')) {
-      return `https://${raw.replace(/^https?:\/\//, '')}/api`;
+      return normalizeApiBase(`https://${raw.replace(/^https?:\/\//, '')}`);
     }
-    if (raw.startsWith('/')) return raw.replace(/\/$/, '') || '/api';
+    if (raw.startsWith('/')) return normalizeApiBase(raw) || '/api';
   }
 
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api`;
+    return normalizeApiBase(window.location.origin);
   }
   return '/api';
 }
@@ -34,9 +54,11 @@ function getCsrfToken(): string {
 function parseJsonBody<T>(text: string, url: string, status: number): T {
   const trimmed = text.trim();
   if (trimmed.startsWith('<')) {
-    throw new Error(
-      `API returned HTML instead of JSON (${status} ${url}). Start Django on port 8000 or deploy the combined app.`
-    );
+    const hint =
+      typeof window !== 'undefined' && LEGACY_FRONTEND_HOSTS[window.location.hostname]
+        ? ` Use ${UNIFIED_RENDER_API} or delete the old giftai-frontend service on Render.`
+        : ' Start Django on port 8000 or open the combined app URL (giftai.onrender.com).';
+    throw new Error(`API returned HTML instead of JSON (${status} ${url}).${hint}`);
   }
   if (!trimmed) return {} as T;
   try {
@@ -221,7 +243,14 @@ export interface OrderRow {
 }
 
 export const api = {
-  health: () => request<{ status: string; ai_enabled?: boolean }>('/health/'),
+  health: (groqPing = false) =>
+    request<{
+      status: string;
+      ai_enabled?: boolean;
+      groq_ok?: boolean | null;
+      groq_error?: string | null;
+      groq_model?: string;
+    }>(groqPing ? '/health/?groq_ping=1' : '/health/'),
   dashboard: () => request<Dashboard>('/dashboard/'),
   occasionsUpcoming: () => request<{ results?: Occasion[] } | Occasion[]>('/occasions/?upcoming=true'),
   occasionsCalendar: () => request<Occasion[]>('/occasions/calendar/'),

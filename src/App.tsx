@@ -17,6 +17,7 @@ import { NavigationProvider } from './contexts/NavigationContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { TestDemoTools } from './components/TestDemoTools';
+import { LegacyHostBanner } from './components/LegacyHostBanner';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -56,6 +57,7 @@ function AppContent() {
   return (
     <NavigationProvider value={navValue}>
       <div className="min-h-screen bg-soft-cream font-sans text-on-surface selection:bg-tertiary-fixed isolate">
+        <LegacyHostBanner />
         <TopNav
           currentView={currentView}
           onNavigate={navigate}
