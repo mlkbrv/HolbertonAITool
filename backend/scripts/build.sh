@@ -3,8 +3,16 @@ set -o errexit
 
 pip install -r requirements.txt
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-echo "==> Building frontend from $ROOT"
+cd "$(dirname "$0")/.."
+
+if [ "${API_ONLY:-false}" = "true" ]; then
+  echo "==> API-only build (frontend served separately)"
+  python manage.py collectstatic --noinput
+  exit 0
+fi
+
+ROOT="$(cd .. && pwd)"
+echo "==> Building bundled frontend from $ROOT"
 cd "$ROOT"
 npm install
 VITE_API_URL=/api VITE_SHOW_TEST_TOOLS=true npm run build

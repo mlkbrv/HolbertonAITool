@@ -121,9 +121,19 @@ REST_FRAMEWORK = {
     ],
 }
 
-SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = 'Lax'
+
+_frontend_url = os.environ.get('FRONTEND_URL', '').strip()
+if _frontend_url and not _frontend_url.startswith('http'):
+    _frontend_url = f'https://{_frontend_url}'
+_cross_origin_frontend = bool(_frontend_url)
+
+if _cross_origin_frontend:
+    SESSION_COOKIE_SAMESITE = 'None'
+    CSRF_COOKIE_SAMESITE = 'None'
+else:
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_SAMESITE = 'Lax'
 
 CORS_ALLOW_ALL_ORIGINS = False
 
@@ -136,12 +146,9 @@ CORS_ALLOWED_ORIGINS = [
     if o.strip() and o.strip() != '*'
 ]
 
-_frontend = os.environ.get('FRONTEND_URL', '').strip()
-if _frontend:
-    if not _frontend.startswith('http'):
-        _frontend = f'https://{_frontend}'
-    if _frontend not in CORS_ALLOWED_ORIGINS:
-        CORS_ALLOWED_ORIGINS.append(_frontend.rstrip('/'))
+if _frontend_url:
+    if _frontend_url not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_frontend_url.rstrip('/'))
 
 if os.environ.get('RENDER') == 'true':
     CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -178,8 +185,8 @@ for _legacy_origin in (
         CSRF_TRUSTED_ORIGINS.append(_legacy_origin)
     if _legacy_origin not in CORS_ALLOWED_ORIGINS:
         CORS_ALLOWED_ORIGINS.append(_legacy_origin)
-if _frontend and _frontend not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(_frontend.rstrip('/'))
+if _frontend_url and _frontend_url not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_frontend_url.rstrip('/'))
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

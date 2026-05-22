@@ -1,4 +1,4 @@
-import { LEGACY_APP_HOSTS, UNIFIED_APP_URL } from '../lib/legacyHost';
+import { API_ORIGIN_DEFAULT, FRONTEND_APP_URL, STUB_HOSTS } from '../lib/legacyHost';
 
 function normalizeApiBase(originOrPath: string): string {
   const base = originOrPath.replace(/\/$/, '');
@@ -9,11 +9,15 @@ function resolveApiBase(): string {
   const raw = (import.meta.env.VITE_API_URL || '').trim();
   const apiOrigin = (import.meta.env.VITE_API_ORIGIN || '').trim();
 
+  if (apiOrigin) {
+    return normalizeApiBase(apiOrigin.startsWith('http') ? apiOrigin : `https://${apiOrigin}`);
+  }
+
   if (typeof window !== 'undefined') {
-    if (apiOrigin) {
-      return normalizeApiBase(apiOrigin.startsWith('http') ? apiOrigin : `https://${apiOrigin}`);
-    }
     if (!raw || raw === '/api' || raw === '/api/') {
+      if (window.location.hostname === 'giftai-frontend.onrender.com') {
+        return normalizeApiBase(API_ORIGIN_DEFAULT);
+      }
       return normalizeApiBase(window.location.origin);
     }
   }
@@ -46,9 +50,9 @@ function parseJsonBody<T>(text: string, url: string, status: number): T {
   const trimmed = text.trim();
   if (trimmed.startsWith('<')) {
     const hint =
-      typeof window !== 'undefined' && LEGACY_APP_HOSTS.has(window.location.hostname)
-        ? ` Open ${UNIFIED_APP_URL} (delete the old giftai-frontend static site on Render).`
-        : ' Start Django on port 8000 or open giftai.onrender.com.';
+      typeof window !== 'undefined' && STUB_HOSTS.has(window.location.hostname)
+        ? ` Open ${FRONTEND_APP_URL}.`
+        : ` Start Django on port 8000 or open ${FRONTEND_APP_URL}.`;
     throw new Error(`API returned HTML instead of JSON (${status} ${url}).${hint}`);
   }
   if (!trimmed) return {} as T;
@@ -237,6 +241,7 @@ export const api = {
   health: (groqPing = false) =>
     request<{
       status: string;
+      app?: string;
       ai_enabled?: boolean;
       groq_ok?: boolean | null;
       groq_error?: string | null;

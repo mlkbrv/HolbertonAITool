@@ -338,6 +338,7 @@ class HealthView(APIView):
         return Response({
             'status': 'ok',
             'service': 'giftai',
+            'app': 'giftly-django',
             'ai_enabled': configured,
             'groq_ok': groq_ok,
             'groq_error': groq_error,
