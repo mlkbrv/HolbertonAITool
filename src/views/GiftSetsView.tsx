@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SlidersHorizontal, Sparkles, Heart } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
+import { api, GiftSet, unwrapList } from '../api/client';
 
 export function GiftSetsView() {
   const { t } = useLanguage();
   const [sensitivity, setSensitivity] = useState(50);
+  const [gifts, setGifts] = useState<GiftSet[]>([]);
+
+  useEffect(() => {
+    api.giftSets().then((data) => setGifts(unwrapList(data))).catch(() => setGifts([]));
+  }, []);
 
   return (
     <>
@@ -108,117 +114,56 @@ export function GiftSetsView() {
           {/* Product Grid */}
           <div className="flex-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              {/* Product Card 1 */}
-              <div className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
-                <div className="relative aspect-[4/5] overflow-hidden bg-surface-container-low">
-                  <img src="https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Lavendar Set" />
-                  <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <Sparkles className="w-3 h-3 text-ai-glow fill-current" />
-                    <span className="text-xs font-bold text-primary">98% {t('home.match')}</span>
-                  </div>
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <Heart className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <p className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2">{t('sets.momWellness')}</p>
-                  <h3 className="text-xl font-serif font-bold text-primary mb-2 leading-tight">Serene Lavender Ritual Set</h3>
-                  <p className="text-sm text-on-surface-variant line-clamp-2 mb-6">Hand-selected organic oils and artisan ceramics for ultimate peace.</p>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-2xl font-serif font-bold text-primary">$120.00</span>
-                    <button className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors">{t('sets.addToBag')}</button>
-                  </div>
-                </div>
-              </div>
-
-               {/* Product Card 2 */}
-              <div className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
-                <div className="relative aspect-[4/5] overflow-hidden bg-surface-container-low">
-                  <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Coffee Set" />
-                  <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <Sparkles className="w-3 h-3 text-ai-glow fill-current" />
-                    <span className="text-xs font-bold text-primary">92% {t('home.match')}</span>
-                  </div>
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <Heart className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <p className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2">{t('sets.momGourmet')}</p>
-                  <h3 className="text-xl font-serif font-bold text-primary mb-2 leading-tight">Artisan Pour-Over Collection</h3>
-                  <p className="text-sm text-on-surface-variant line-clamp-2 mb-6">For the connoisseur who appreciates the slow art of morning brew.</p>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-2xl font-serif font-bold text-primary">$185.00</span>
-                    <button className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors">{t('sets.addToBag')}</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Product Card 3 */}
-              <div className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
-                <div className="relative aspect-[4/5] overflow-hidden bg-surface-container-low">
-                  <img src="https://images.unsplash.com/photo-1588117260148-b47818741c74?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Silk scarf" />
-                  <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <Sparkles className="w-3 h-3 text-ai-glow fill-current" />
-                    <span className="text-xs font-bold text-primary">85% {t('home.match')}</span>
-                  </div>
-                  <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-                    <Heart className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <p className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2">{t('sets.momFashion')}</p>
-                  <h3 className="text-xl font-serif font-bold text-primary mb-2 leading-tight">Hand-Painted Silk Scarf</h3>
-                  <p className="text-sm text-on-surface-variant line-clamp-2 mb-6">A wearable piece of art, hand-finished in the Italian Lake District.</p>
-                  <div className="mt-auto flex items-center justify-between">
-                    <span className="text-2xl font-serif font-bold text-primary">$210.00</span>
-                    <button className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors">{t('sets.addToBag')}</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Featured Banner */}
-              <div className="group bg-primary-container rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full lg:col-span-2 relative cursor-pointer">
-                <div className="absolute inset-0">
-                  <img src="https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=1200&auto=format&fit=crop" className="w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 group-hover:scale-105" alt="Library" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent"></div>
-                </div>
-                
-                <div className="relative h-full flex flex-col p-8 md:p-10 z-10 text-white">
-                  <div className="mt-auto">
-                    <span className="inline-block bg-ai-glow text-white px-3 py-1 rounded-full text-xs font-bold mb-4">{t('sets.recommended')}</span>
-                    <h2 className="text-3xl md:text-4xl font-serif font-bold mb-2">{t('sets.box')}</h2>
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-4">
-                       <div>
-                        <p className="text-base text-white/80 mb-2">{t('sets.boxDesc')}</p>
-                        <p className="text-2xl font-serif font-bold">$145.00</p>
-                       </div>
-                       <button className="px-8 py-3 bg-white text-primary rounded-full text-sm font-bold hover:bg-white/90 transition-all flex items-center gap-2 w-max">
-                        <Sparkles className="w-4 h-4 fill-current text-primary" />
-                        {t('sets.viewFull')}
-                      </button>
+              {gifts.map((gift) =>
+                gift.is_featured ? (
+                  <div key={gift.id} className="group bg-primary-container rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full lg:col-span-2 relative cursor-pointer">
+                    <div className="absolute inset-0">
+                      <img src={gift.image_url} className="w-full h-full object-cover opacity-60 mix-blend-overlay transition-transform duration-700 group-hover:scale-105" alt={gift.title} />
+                      <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/80 to-transparent"></div>
+                    </div>
+                    <div className="relative h-full flex flex-col p-8 md:p-10 z-10 text-white min-h-[320px]">
+                      <div className="mt-auto">
+                        <span className="inline-block bg-ai-glow text-white px-3 py-1 rounded-full text-xs font-bold mb-4">{t('sets.recommended')}</span>
+                        <h2 className="text-3xl md:text-4xl font-serif font-bold mb-2">{gift.title}</h2>
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pt-4">
+                          <div>
+                            <p className="text-base text-white/80 mb-2">{gift.description}</p>
+                            <p className="text-2xl font-serif font-bold">${gift.price}</p>
+                          </div>
+                          <button className="px-8 py-3 bg-white text-primary rounded-full text-sm font-bold hover:bg-white/90 transition-all flex items-center gap-2 w-max">
+                            <Sparkles className="w-4 h-4 fill-current text-primary" />
+                            {t('sets.viewFull')}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Product Card 4 */}
-              <div className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
-                <div className="relative aspect-square overflow-hidden bg-surface-container-low">
-                  <img src="https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Ceramics" />
-                  <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
-                    <Sparkles className="w-3 h-3 text-ai-glow fill-current" />
-                    <span className="text-xs font-bold text-primary">79% {t('home.match')}</span>
+                ) : (
+                  <div key={gift.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 border border-outline-variant/20 flex flex-col h-full cursor-pointer">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-surface-container-low">
+                      <img src={gift.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={gift.title} />
+                      <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm">
+                        <Sparkles className="w-3 h-3 text-ai-glow fill-current" />
+                        <span className="text-xs font-bold text-primary">{gift.match_percent}% {t('home.match')}</span>
+                      </div>
+                      <button className="absolute bottom-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center text-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                        <Heart className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      {gift.recipient_label && (
+                        <p className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2">{gift.recipient_label}</p>
+                      )}
+                      <h3 className="text-xl font-serif font-bold text-primary mb-2 leading-tight">{gift.title}</h3>
+                      <p className="text-sm text-on-surface-variant line-clamp-2 mb-6">{gift.description}</p>
+                      <div className="mt-auto flex items-center justify-between">
+                        <span className="text-2xl font-serif font-bold text-primary">${gift.price}</span>
+                        <button className="px-4 py-2 bg-accent text-on-accent rounded-full text-sm font-bold hover:bg-accent/90 transition-colors">{t('sets.addToBag')}</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <p className="text-xs font-semibold text-secondary uppercase tracking-[0.2em] mb-2">{t('sets.momHome')}</p>
-                  <h3 className="text-xl font-serif font-bold text-primary mb-2">Kyoto Ceramic Set</h3>
-                  <p className="text-2xl font-serif font-bold text-primary mt-auto">$88.00</p>
-                </div>
-              </div>
-
+                )
+              )}
             </div>
           </div>
         </div>

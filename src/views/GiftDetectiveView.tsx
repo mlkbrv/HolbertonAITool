@@ -1,47 +1,52 @@
 import { useState, useEffect } from 'react';
 import { Paperclip, Send, Sparkles, User, BrainCircuit } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { api, ChatMessage, DetectiveSession, PersonalityProfile, unwrapList } from '../api/client';
 
 export function GiftDetectiveView() {
-  const { t, language } = useLanguage();
-  const [messages, setMessages] = useState<any[]>([]);
-  const [inputValue, setInputValue] = useState("");
+  const { t } = useLanguage();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [session, setSession] = useState<DetectiveSession | null>(null);
+  const [profile, setProfile] = useState<PersonalityProfile | null>(null);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
-    setMessages([
-      {
-        id: 1,
-        role: 'ai',
-        text: t('detective.msg1'),
-        time: "10:02 AM"
-      },
-      {
-        id: 2,
-        role: 'user',
-        text: t('detective.msg2'),
-        time: "10:03 AM"
-      },
-      {
-        id: 3,
-        role: 'ai',
-        text: t('detective.msg3'),
-        time: "10:04 AM",
-        options: [t('detective.opt1'), t('detective.opt2')]
-      }
-    ]);
-  }, [language, t]);
+    api.detectiveActive()
+      .then((s) => {
+        setSession(s);
+        setMessages(s.messages);
+        return api.profiles(s.recipient.id);
+      })
+      .then((data) => {
+        const list = unwrapList(data);
+        if (list[0]) setProfile(list[0]);
+      })
+      .catch(() => {
+        setMessages([
+          { id: 1, role: 'ai', text: t('detective.msg1'), time_label: '10:02 AM', options: [] },
+          { id: 2, role: 'user', text: t('detective.msg2'), time_label: '10:03 AM', options: [] },
+          { id: 3, role: 'ai', text: t('detective.msg3'), time_label: '10:04 AM', options: [t('detective.opt1'), t('detective.opt2')] },
+        ]);
+      });
+  }, [t]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
-    
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      role: 'user',
-      text: inputValue,
-      time: "Just now"
-    }]);
+    const text = inputValue;
     setInputValue('');
+    if (!session) {
+      setMessages((prev) => [...prev, { id: Date.now(), role: 'user', text, time_label: 'Just now', options: [] }]);
+      return;
+    }
+    try {
+      const newMsgs = await api.sendMessage(session.id, text);
+      setMessages((prev) => [...prev, ...newMsgs]);
+    } catch {
+      setMessages((prev) => [...prev, { id: Date.now(), role: 'user', text, time_label: 'Just now', options: [] }]);
+    }
   };
+
+  const topMatch = profile?.top_match?.gift_set;
 
   return (
     <div className="h-screen w-full flex flex-col md:flex-row overflow-hidden bg-soft-cream/40">
@@ -96,7 +101,7 @@ export function GiftDetectiveView() {
                   )}
                   
                   <p className={`text-xs font-semibold text-on-surface-variant mt-2 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                    {msg.time}
+                    {msg.time_label}
                   </p>
                 </div>
              </div>
@@ -151,7 +156,7 @@ export function GiftDetectiveView() {
                  <div className="h-1.5 bg-background flex-grow rounded-full overflow-hidden shrink-0 basis-1/2">
                    <div className="h-full bg-ai-glow w-[68%] transition-all duration-1000"></div>
                  </div>
-                 <span className="text-xs font-bold text-primary tracking-wide">68% {t('detective.confidence')}</span>
+                 <span className="text-xs font-bold text-primary tracking-wide">{profile?.confidence_percent ?? 68}% {t('detective.confidence')}</span>
               </div>
             </header>
 
@@ -164,35 +169,19 @@ export function GiftDetectiveView() {
                </div>
                
                <div className="space-y-5">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base text-primary font-medium">{t('detective.int1')}</span>
-                      <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">{t('detective.high')}</span>
+                  {(profile?.interests ?? []).map((interest) => (
+                    <div key={interest.id}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-base text-primary font-medium">{interest.name}</span>
+                        <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">
+                          {interest.level === 'high' ? t('detective.high') : interest.level === 'medium' ? t('detective.medium') : t('detective.high')}
+                        </span>
+                      </div>
+                      <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-secondary h-full rounded-full" style={{ width: `${interest.score_percent}%` }}></div>
+                      </div>
                     </div>
-                    <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-secondary h-full w-[90%] rounded-full"></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base text-primary font-medium">{t('detective.int2')}</span>
-                      <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">{t('detective.medium')}</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-secondary h-full w-[45%] rounded-full opacity-60"></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-base text-primary font-medium">{t('detective.int3')}</span>
-                      <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded">{t('detective.high')}</span>
-                    </div>
-                    <div className="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-secondary h-full w-[80%] rounded-full"></div>
-                    </div>
-                  </div>
+                  ))}
                </div>
             </div>
 
@@ -200,11 +189,11 @@ export function GiftDetectiveView() {
             <div className="grid grid-cols-2 gap-4 mb-8">
                <div className="p-5 border border-outline-variant/30 rounded-2xl bg-white shadow-sm flex flex-col justify-between">
                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 block opacity-70">{t('detective.trait')}</span>
-                 <p className="text-2xl font-serif font-bold text-primary">{t('detective.traitVal')}</p>
+                 <p className="text-2xl font-serif font-bold text-primary">{profile?.trait || t('detective.traitVal')}</p>
                </div>
                <div className="p-5 border border-outline-variant/30 rounded-2xl bg-white shadow-sm flex flex-col justify-between">
                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-3 block opacity-70">{t('detective.mood')}</span>
-                 <p className="text-2xl font-serif font-bold text-primary">{t('detective.moodVal')}</p>
+                 <p className="text-2xl font-serif font-bold text-primary">{profile?.mood || t('detective.moodVal')}</p>
                </div>
             </div>
 
@@ -215,19 +204,19 @@ export function GiftDetectiveView() {
                <div className="group relative bg-surface-container-low rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-outline-variant/10 cursor-pointer">
                  <div className="h-40 overflow-hidden relative">
                    <img 
-                      src="https://images.unsplash.com/photo-1544256428-251d5c2ee0cb?q=80&w=600&auto=format&fit=crop" 
+                      src={topMatch?.image_url || 'https://images.unsplash.com/photo-1544256428-251d5c2ee0cb?q=80&w=600&auto=format&fit=crop'} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                       alt="Recommended Gift" 
                    />
                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                    <div className="absolute top-3 right-3 glass px-2 py-1 rounded-lg backdrop-blur-md">
-                     <span className="text-xs font-bold text-primary">94% {t('home.match')}</span>
+                     <span className="text-xs font-bold text-primary">{profile?.top_match?.match_percent ?? 94}% {t('home.match')}</span>
                    </div>
                  </div>
                  <div className="p-5 bg-white relative z-10 border-t border-outline-variant/10">
-                   <h5 className="text-lg font-serif font-bold text-primary">The Nordic Morning Set</h5>
+                   <h5 className="text-lg font-serif font-bold text-primary">{topMatch?.title || 'The Nordic Morning Set'}</h5>
                    <div className="flex justify-between items-center mt-3">
-                     <span className="text-sm font-semibold text-on-surface-variant">$124.00</span>
+                     <span className="text-sm font-semibold text-on-surface-variant">${topMatch?.price || '124.00'}</span>
                      <span className="text-sm font-semibold text-secondary hover:underline group-hover:text-primary transition-colors flex items-center gap-1">
                         {t('detective.viewSet')} 
                      </span>

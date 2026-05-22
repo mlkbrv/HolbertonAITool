@@ -1,20 +1,72 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# GiftAI — Gifting Platform
 
-# Run and deploy your AI Studio app
+React frontend + Django REST API for occasions, gift sets, AI detective chat, and corporate CRM.
 
-This contains everything you need to run your app locally.
+## Local setup
 
-View your app in AI Studio: https://ai.studio/apps/4b972f1e-a8db-4d1b-9371-1aca071319c4
+### Backend (Django)
 
-## Run Locally
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_mock_data
+python manage.py runserver
+```
 
-**Prerequisites:**  Node.js
+API: http://127.0.0.1:8000/api/  
+Health: http://127.0.0.1:8000/api/health/
 
+### Frontend (Vite)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm install
+npm run dev
+```
+
+App: http://localhost:3000 (proxies `/api` → Django)
+
+## Mock data
+
+```bash
+cd backend
+python manage.py seed_mock_data
+```
+
+Clears and repopulates recipients, gift sets, occasions, saved gifts, detective chat, and dashboard insights.
+
+## API endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/dashboard/` | Home: occasions, curated sets, offers, insights |
+| `GET /api/occasions/?upcoming=true` | Upcoming occasions |
+| `GET /api/gift-sets/` | All gift sets |
+| `GET /api/saved-gifts/` | Saved gifts for calendar |
+| `GET /api/detective/sessions/active/` | Active chat session |
+| `POST /api/detective/sessions/{id}/messages/` | Send chat message |
+| `POST /api/occasions/` | Create occasion |
+
+## Deploy on Render
+
+Uses [`render.yaml`](render.yaml):
+
+1. PostgreSQL database `giftai-db`
+2. Web service `giftai-api` (Django + gunicorn)
+3. Static site `giftai-frontend` (Vite build)
+
+After deploy, set in Render dashboard:
+
+- **giftai-api** → `ALLOWED_HOSTS` = your API hostname
+- **giftai-api** → `CORS_ALLOWED_ORIGINS` = frontend URL
+- **giftai-frontend** → `VITE_API_URL` = `https://your-api.onrender.com/api`
+
+`postDeployCommand` runs `seed_mock_data` automatically.
+
+## Environment
+
+Copy `backend/.env.example` to `backend/.env` for local overrides.
+
+Frontend: `VITE_API_URL=/api` (default, uses Vite proxy).

@@ -1,10 +1,19 @@
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle2, Bookmark, ArrowRight, Sparkles } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
+import { api, Dashboard, SavedGift, unwrapList } from '../api/client';
 
 export function CalendarView() {
   const { t } = useLanguage();
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const [saved, setSaved] = useState<SavedGift[]>([]);
+  const [insight, setInsight] = useState<Dashboard['calendar_insight']>(null);
+
+  useEffect(() => {
+    api.savedGifts().then((d) => setSaved(unwrapList(d))).catch(() => setSaved([]));
+    api.dashboard().then((d) => setInsight(d.calendar_insight)).catch(() => setInsight(null));
+  }, []);
 
   return (
     <>
@@ -101,57 +110,30 @@ export function CalendarView() {
               </div>
               
               <div className="space-y-4">
-                {/* Save Item 1 */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 hover:-translate-y-1 transition-transform cursor-pointer group">
-                  <div className="flex gap-4">
-                    <img 
-                      src="https://images.unsplash.com/photo-1544256428-251d5c2ee0cb?q=80&w=200&auto=format&fit=crop" 
-                      className="w-20 h-20 object-cover rounded-xl shrink-0" 
-                      alt="Picnic set"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-secondary uppercase">{t('calendar.forSarah')}</span>
-                        <span className="text-xs text-on-surface-variant">Oct 24</span>
-                      </div>
-                      <h4 className="text-sm font-bold text-primary mt-1">Artisan Picnic Set</h4>
-                      <p className="text-xs text-on-surface-variant">AI {t('home.match')}: 98%</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold">$124.00</span>
-                        <button className="text-ai-glow hover:underline text-xs font-bold flex items-center gap-1 group-hover:text-primary transition-colors">
-                          {t('calendar.finalize')} <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Save Item 2 */}
-                <div className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 hover:-translate-y-1 transition-transform cursor-pointer group">
-                  <div className="flex gap-4">
-                    <img 
-                      src="https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=200&auto=format&fit=crop" 
-                      className="w-20 h-20 object-cover rounded-xl shrink-0" 
-                      alt="Watch" 
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-secondary uppercase">{t('calendar.forMichael')}</span>
-                        <span className="text-xs text-on-surface-variant">Nov 02</span>
-                      </div>
-                      <h4 className="text-sm font-bold text-primary mt-1">Vantage Tech Pro</h4>
-                      <p className="text-xs text-on-surface-variant">AI {t('home.match')}: 94%</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-sm font-bold">$299.00</span>
-                        <button className="text-ai-glow hover:underline text-xs font-bold flex items-center gap-1 group-hover:text-primary transition-colors">
-                           {t('calendar.finalize')} <ArrowRight className="w-3 h-3" />
-                        </button>
+                {saved.map((item) => (
+                  <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 hover:-translate-y-1 transition-transform cursor-pointer group">
+                    <div className="flex gap-4">
+                      <img src={item.gift_set.image_url} className="w-20 h-20 object-cover rounded-xl shrink-0" alt={item.gift_set.title} />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-secondary uppercase">{item.recipient.name}</span>
+                          <span className="text-xs text-on-surface-variant">
+                            {new Date(item.occasion_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-primary mt-1">{item.gift_set.title}</h4>
+                        <p className="text-xs text-on-surface-variant">AI {t('home.match')}: {item.match_percent}%</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm font-bold">${item.gift_set.price}</span>
+                          <button className="text-ai-glow hover:underline text-xs font-bold flex items-center gap-1 group-hover:text-primary transition-colors">
+                            {t('calendar.finalize')} <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
 
-                {/* Empty Slot / Suggestion */}
                 <div className="border-2 border-dashed border-outline-variant/40 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 bg-surface-container-low/50">
                   <div className="w-10 h-10 rounded-full bg-ai-glow/10 flex items-center justify-center text-ai-glow">
                     <Sparkles className="w-5 h-5 fill-current" />
@@ -174,13 +156,13 @@ export function CalendarView() {
               <div className="space-y-4 relative z-10">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-on-surface-variant">{t('calendar.readiness')}</span>
-                  <span className="font-bold text-primary">72%</span>
+                  <span className="font-bold text-primary">{insight?.readiness_percent ?? 72}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="w-[72%] h-full bg-primary transition-all duration-1000"></div>
+                  <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${insight?.readiness_percent ?? 72}%` }}></div>
                 </div>
                 <p className="text-sm text-on-surface-variant leading-relaxed italic bg-white/50 p-4 rounded-xl border border-white">
-                  {t('calendar.insightQuote')}
+                  {insight?.quote || t('calendar.insightQuote')}
                 </p>
               </div>
             </div>

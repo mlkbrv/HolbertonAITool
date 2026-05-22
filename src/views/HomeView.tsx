@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, UploadCloud, Link as LinkIcon, Brain } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { ViewState } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import { api, Dashboard } from '../api/client';
 
 interface HomeViewProps {
   onNavigate: (view: ViewState) => void;
@@ -9,6 +11,15 @@ interface HomeViewProps {
 
 export function HomeView({ onNavigate }: HomeViewProps) {
   const { t } = useLanguage();
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+
+  useEffect(() => {
+    api.dashboard().then(setDashboard).catch(() => setDashboard(null));
+  }, []);
+
+  const occasions = dashboard?.upcoming_occasions ?? [];
+  const curated = dashboard?.curated_gift_sets ?? [];
+  const offer = dashboard?.corporate_offers?.[0];
 
   return (
     <>
@@ -92,55 +103,35 @@ export function HomeView({ onNavigate }: HomeViewProps) {
             </div>
             
             <div className="space-y-4">
-              <div 
-                onClick={() => onNavigate('calendar')}
-                className="flex items-center gap-6 p-6 bg-white rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-secondary-container flex flex-col items-center justify-center text-on-secondary-container">
-                  <span className="text-xs font-semibold uppercase">Oct</span>
-                  <span className="text-2xl font-serif font-bold leading-none">24</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-serif font-semibold text-primary mb-1">Mom's 60th Birthday</h4>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
-                      {t('home.inDays').replace('{days}', '3')}
-                    </span>
-                    <div className="flex-1 max-w-[200px] h-1.5 bg-surface-container rounded-full overflow-hidden">
-                      <div className="h-full bg-secondary w-full rounded-full"></div>
-                    </div>
-                    <span className="text-xs font-bold text-secondary">{t('home.giftReady')}</span>
+              {occasions.map((occ) => (
+                <div
+                  key={occ.id}
+                  onClick={() => onNavigate('calendar')}
+                  className="flex items-center gap-6 p-6 bg-white rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer"
+                >
+                  <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center ${occ.status === 'gift_ready' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'}`}>
+                    <span className="text-xs font-semibold uppercase">{occ.month_label}</span>
+                    <span className="text-2xl font-serif font-bold leading-none">{occ.day_label}</span>
                   </div>
-                </div>
-                <button className="p-4 rounded-full border border-outline-variant/30 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div 
-                 onClick={() => onNavigate('calendar')}
-                className="flex items-center gap-6 p-6 bg-white rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-md hover:border-primary/20 transition-all group cursor-pointer"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-surface-container flex flex-col items-center justify-center text-on-surface-variant">
-                  <span className="text-xs font-semibold uppercase">Nov</span>
-                  <span className="text-2xl font-serif font-bold leading-none">02</span>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-xl font-serif font-semibold text-primary mb-1">Wedding Anniversary</h4>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
-                      {t('home.inDays').replace('{days}', '12')}
-                    </span>
-                    <div className="flex-1 max-w-[200px] h-1.5 bg-surface-container rounded-full overflow-hidden">
-                      <div className="h-full bg-ai-glow w-1/3 rounded-full"></div>
+                  <div className="flex-1">
+                    <h4 className="text-xl font-serif font-semibold text-primary mb-1">{occ.title}</h4>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs font-semibold text-on-surface-variant flex items-center gap-1">
+                        {t('home.inDays').replace('{days}', String(occ.days_until))}
+                      </span>
+                      <div className="flex-1 max-w-[200px] h-1.5 bg-surface-container rounded-full overflow-hidden">
+                        <div className="h-full bg-secondary rounded-full" style={{ width: `${occ.progress_percent}%` }}></div>
+                      </div>
+                      <span className="text-xs font-bold text-secondary">
+                        {occ.status === 'gift_ready' ? t('home.giftReady') : t('home.analysisReq')}
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold text-on-surface-variant">{t('home.analysisReq')}</span>
                   </div>
+                  <button className="p-4 rounded-full border border-outline-variant/30 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                    {occ.status === 'gift_ready' ? <ArrowRight className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                  </button>
                 </div>
-                <button className="p-4 rounded-full border border-outline-variant/30 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                  <Sparkles className="w-5 h-5" />
-                </button>
-              </div>
+              ))}
             </div>
           </div>
           
@@ -157,10 +148,12 @@ export function HomeView({ onNavigate }: HomeViewProps) {
                   </p>
                </div>
                <div className="mt-auto space-y-4 relative z-10">
-                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
-                    <p className="text-xs font-semibold text-ai-glow mb-1">{t('home.newOffer')}</p>
-                    <h5 className="text-sm font-bold">{t('home.offerDesc')}</h5>
-                  </div>
+                  {offer && (
+                    <div className="p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer">
+                      <p className="text-xs font-semibold text-ai-glow mb-1">{offer.is_new ? t('home.newOffer') : t('home.businessElite')}</p>
+                      <h5 className="text-sm font-bold">{offer.title}</h5>
+                    </div>
+                  )}
                   <button className="w-full py-4 bg-white text-primary rounded-xl font-semibold hover:scale-[1.02] transition-transform">
                       {t('home.openDashboard')}
                   </button>
@@ -180,91 +173,33 @@ export function HomeView({ onNavigate }: HomeViewProps) {
           </div>
           
           <div className="flex gap-6 overflow-x-auto scroll-hide pb-8 -mx-6 px-6">
-            
-            {/* Card 1 */}
-            <div 
-              className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 cursor-pointer"
-              onClick={() => onNavigate('gift-sets')}
-            >
-              <div className="h-64 relative overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  src="https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=800&auto=format&fit=crop" 
-                  alt="Artisan coffee set" 
-                />
-                <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border-white/60">
-                   <Sparkles className="w-4 h-4 text-ai-glow fill-current" />
-                   <span className="text-xs font-bold text-primary">98% {t('home.match')}</span>
+            {curated.map((gift) => (
+              <div
+                key={gift.id}
+                className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 cursor-pointer"
+                onClick={() => onNavigate('gift-sets')}
+              >
+                <div className="h-64 relative overflow-hidden">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={gift.image_url} alt={gift.title} />
+                  <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border-white/60">
+                    <Sparkles className="w-4 h-4 text-ai-glow fill-current" />
+                    <span className="text-xs font-bold text-primary">{gift.match_percent}% {t('home.match')}</span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h4 className="text-xl font-serif font-semibold text-primary mb-1">{gift.title}</h4>
+                  <div className="flex items-center gap-2 mb-4">
+                    {gift.edition_label && (
+                      <span className="px-2 py-0.5 bg-secondary-container/30 text-secondary text-[10px] font-bold rounded uppercase tracking-wider">{gift.edition_label}</span>
+                    )}
+                    <span className="text-xs text-on-surface-variant font-semibold">${gift.price}</span>
+                  </div>
+                  <button className="w-full py-3 border border-secondary text-secondary font-semibold rounded-xl hover:bg-secondary hover:text-white transition-all">
+                    {t('home.viewSet')}
+                  </button>
                 </div>
               </div>
-              <div className="p-6">
-                <h4 className="text-xl font-serif font-semibold text-primary mb-1">Artisan Morning Ritual</h4>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 bg-secondary-container/30 text-secondary text-[10px] font-bold rounded uppercase tracking-wider">Luxe Edition</span>
-                  <span className="text-xs text-on-surface-variant font-semibold">$145.00</span>
-                </div>
-                <button className="w-full py-3 border border-secondary text-secondary font-semibold rounded-xl hover:bg-secondary hover:text-white transition-all">
-                  {t('home.viewSet')}
-                </button>
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div 
-              className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 cursor-pointer"
-              onClick={() => onNavigate('gift-sets')}
-            >
-              <div className="h-64 relative overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  src="https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?q=80&w=800&auto=format&fit=crop" 
-                  alt="Wellness gift box" 
-                />
-                <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border-white/60">
-                   <Sparkles className="w-4 h-4 text-ai-glow fill-current" />
-                   <span className="text-xs font-bold text-primary">92% {t('home.match')}</span>
-                </div>
-              </div>
-              <div className="p-6">
-                <h4 className="text-xl font-serif font-semibold text-primary mb-1">Midnight Serenity Box</h4>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold rounded uppercase tracking-wider">Best Seller</span>
-                  <span className="text-xs text-on-surface-variant font-semibold">$88.00</span>
-                </div>
-                <button className="w-full py-3 border border-secondary text-secondary font-semibold rounded-xl hover:bg-secondary hover:text-white transition-all">
-                  {t('home.viewSet')}
-                </button>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div 
-              className="min-w-[320px] bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all group flex-shrink-0 cursor-pointer"
-              onClick={() => onNavigate('gift-sets')}
-            >
-              <div className="h-64 relative overflow-hidden">
-                <img 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  src="https://images.unsplash.com/photo-1585338107529-13afc5f02586?q=80&w=800&auto=format&fit=crop" 
-                  alt="Desk items" 
-                />
-                <div className="absolute top-4 right-4 glass px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border-white/60">
-                   <Sparkles className="w-4 h-4 text-ai-glow fill-current" />
-                   <span className="text-xs font-bold text-primary">85% {t('home.match')}</span>
-                </div>
-              </div>
-              <div className="p-6">
-                <h4 className="text-xl font-serif font-semibold text-primary mb-1">The Curator's Desk</h4>
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="px-2 py-0.5 bg-primary/5 text-primary text-[10px] font-bold rounded uppercase tracking-wider">Executive</span>
-                  <span className="text-xs text-on-surface-variant font-semibold">$210.00</span>
-                </div>
-                <button className="w-full py-3 border border-secondary text-secondary font-semibold rounded-xl hover:bg-secondary hover:text-white transition-all">
-                  {t('home.viewSet')}
-                </button>
-              </div>
-            </div>
-            
+            ))}
           </div>
         </section>
       </div>
