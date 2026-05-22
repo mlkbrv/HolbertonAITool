@@ -3,8 +3,7 @@ from datetime import date, timedelta
 from django.conf import settings
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
+from .csrf import csrf_enforce
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -83,6 +82,7 @@ class GiftSetViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(GiftSetSerializer(items, many=True).data)
 
 
+@csrf_enforce
 class OccasionViewSet(viewsets.ModelViewSet):
     queryset = Occasion.objects.select_related('recipient')
     http_method_names = ['get', 'post', 'head', 'options']
@@ -134,7 +134,7 @@ class PersonalityProfileViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DetectiveSession.objects.select_related('recipient').prefetch_related('messages')
     serializer_class = DetectiveSessionSerializer
@@ -327,7 +327,7 @@ class DashboardView(APIView):
         return Response(DashboardSerializer(payload).data)
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class HealthView(APIView):
     def get(self, request):
         configured = is_groq_configured()

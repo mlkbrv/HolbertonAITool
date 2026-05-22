@@ -7,6 +7,7 @@ from .commerce_views import (
     CartView,
     CheckoutGiftsView,
     CheckoutSubscriptionView,
+    CsrfView,
     LoginView,
     LogoutView,
     MeView,
@@ -40,6 +41,7 @@ router.register('corporate-offers', CorporateOfferViewSet, basename='corporateof
 urlpatterns = [
     path('health/', HealthView.as_view(), name='health'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('auth/csrf/', CsrfView.as_view()),
     path('auth/register/', RegisterView.as_view()),
     path('auth/login/', LoginView.as_view()),
     path('auth/logout/', LogoutView.as_view()),

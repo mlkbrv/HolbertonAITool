@@ -40,7 +40,18 @@ function resolveApiBase(): string {
 
 const API_BASE = resolveApiBase();
 
-function getCsrfToken(): string {
+let csrfTokenCache = '';
+
+function isCrossOriginApi(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return new URL(API_BASE).origin !== window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+function readCsrfCookie(): string {
   if (typeof document === 'undefined') return '';
   const match = document.cookie.match(/csrftoken=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : '';
@@ -67,16 +78,61 @@ function apiErrorMessage(data: Record<string, unknown>, status: number): string 
   const detail = data.detail;
   if (typeof detail === 'string') return detail;
   if (Array.isArray(detail) && detail[0]) return String(detail[0]);
-  if (status === 403) return 'CSRF or permission denied — refresh the page and try again';
+  if (status === 403) {
+    const msg = typeof detail === 'string' ? detail : '';
+    if (msg.toLowerCase().includes('csrf')) return 'Session expired — refresh the page and log in again';
+    if (msg.toLowerCase().includes('credential') || msg.toLowerCase().includes('authentication')) {
+      return 'Please log in to continue';
+    }
+    return 'Access denied — log in and try again';
+  }
+  if (status === 401) return 'Please log in to continue';
   return `Request failed (${status})`;
 }
 
-async function ensureCsrfCookie(): Promise<void> {
-  if (getCsrfToken()) return;
-  await fetch(`${API_BASE}/health/`, { credentials: 'include' });
+export function setCsrfToken(token: string) {
+  csrfTokenCache = token;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+export function applyCsrfFromPayload(data: unknown) {
+  if (data && typeof data === 'object' && 'csrfToken' in data) {
+    const token = (data as { csrfToken?: string }).csrfToken;
+    if (token) setCsrfToken(token);
+  }
+}
+
+function getCsrfToken(): string {
+  if (csrfTokenCache) return csrfTokenCache;
+  return readCsrfCookie();
+}
+
+export async function prefetchCsrf(): Promise<void> {
+  const url = `${API_BASE}/auth/csrf/`;
+  const res = await fetch(url, {
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  });
+  const text = await res.text();
+  const data = parseJsonBody<{ csrfToken?: string }>(text, url, res.status);
+  if (!res.ok) {
+    throw new Error(apiErrorMessage(data as Record<string, unknown>, res.status));
+  }
+  if (!data.csrfToken) {
+    throw new Error('CSRF token missing from API');
+  }
+  setCsrfToken(data.csrfToken);
+}
+
+async function ensureCsrfToken(): Promise<void> {
+  if (isCrossOriginApi()) {
+    await prefetchCsrf();
+    return;
+  }
+  if (getCsrfToken()) return;
+  await prefetchCsrf();
+}
+
+async function request<T>(path: string, options?: RequestInit, retried = false): Promise<T> {
   const method = (options?.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -84,9 +140,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(options?.headers as Record<string, string>),
   };
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    await ensureCsrfCookie();
+    await ensureCsrfToken();
     const csrf = getCsrfToken();
-    if (csrf) headers['X-CSRFToken'] = csrf;
+    if (!csrf) {
+      throw new Error('CSRF token missing — refresh the page');
+    }
+    headers['X-CSRFToken'] = csrf;
   }
   const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
@@ -97,8 +156,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const text = await res.text();
   const data = parseJsonBody<Record<string, unknown>>(text, url, res.status);
   if (!res.ok) {
+    if (res.status === 403 && !retried && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      setCsrfToken('');
+      await prefetchCsrf();
+      return request<T>(path, options, true);
+    }
     throw new Error(apiErrorMessage(data, res.status) || res.statusText);
   }
+  applyCsrfFromPayload(data);
   return data as T;
 }
 
@@ -212,6 +277,7 @@ export interface SubscriptionPlan {
 export interface MeResponse {
   user: AuthUser | null;
   plan: SubscriptionPlan | null;
+  csrfToken?: string;
 }
 
 export interface CartItemRow {

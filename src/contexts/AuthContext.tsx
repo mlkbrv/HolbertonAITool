@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { api, AuthUser, MeResponse, SubscriptionPlan } from '../api/client';
+import { api, AuthUser, MeResponse, prefetchCsrf, SubscriptionPlan } from '../api/client';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -27,9 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshMe = useCallback(async () => {
     try {
-      await api.health();
+      await prefetchCsrf();
     } catch {
-      /* CSRF cookie optional until first POST */
+      /* retry on first POST */
     }
     try {
       const data = await api.me();
@@ -46,17 +46,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const data = await api.login(email, password);
     setMe(data);
-    await refreshMe();
+    await prefetchCsrf();
   };
 
   const register = async (email: string, password: string, name?: string) => {
     const data = await api.register(email, password, name);
     setMe(data);
-    await refreshMe();
+    await prefetchCsrf();
   };
 
   const logout = async () => {
     await api.logout();
+    await prefetchCsrf();
     const data = await api.me();
     setMe(data);
   };

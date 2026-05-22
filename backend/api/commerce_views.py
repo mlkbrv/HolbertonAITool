@@ -3,14 +3,15 @@ from decimal import Decimal
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .cart_utils import CART_SESSION_COOKIE, cart_item_count, get_or_create_cart, get_user_plan
+from .cookie_utils import browser_cookie_kwargs
+from .csrf import csrf_enforce
 from .models import Cart, CartItem, GiftSet, Order, OrderItem, SubscriptionPlan, UserProfile
 from .serializers import (
     CartItemSerializer,
@@ -47,7 +48,29 @@ def _me_response(user):
     }
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+def _auth_response(request, user, status_code=status.HTTP_200_OK):
+    payload = _me_response(user)
+    payload['csrfToken'] = get_token(request)
+    return Response(payload, status=status_code)
+
+
+def _set_cart_session_cookie(response, session_key):
+    response.set_cookie(
+        CART_SESSION_COOKIE,
+        session_key,
+        **browser_cookie_kwargs(max_age=60 * 60 * 24 * 30),
+    )
+
+
+@csrf_enforce
+class CsrfView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({'csrfToken': get_token(request)})
+
+
+@csrf_enforce
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -68,10 +91,10 @@ class RegisterView(APIView):
         free = SubscriptionPlan.objects.filter(slug='free').first()
         UserProfile.objects.create(user=user, plan=free)
         login(request, user)
-        return Response(_me_response(user), status=status.HTTP_201_CREATED)
+        return _auth_response(request, user, status.HTTP_201_CREATED)
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -87,17 +110,19 @@ class LoginView(APIView):
         if not user:
             return Response({'detail': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
         login(request, user)
-        return Response(_me_response(user))
+        return _auth_response(request, user)
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         logout(request)
-        return Response({'detail': 'Logged out'})
+        return Response({'detail': 'Logged out', 'csrfToken': get_token(request)})
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class MeView(APIView):
     permission_classes = [AllowAny]
 
@@ -111,7 +136,7 @@ class MeView(APIView):
         return Response(_me_response(request.user))
 
 
-@method_decorator(ensure_csrf_cookie, name='dispatch')
+@csrf_enforce
 class CartView(APIView):
     permission_classes = [AllowAny]
 
@@ -120,7 +145,7 @@ class CartView(APIView):
         data = _cart_response(cart)
         response = Response(CartSerializer(data).data)
         if new_session:
-            response.set_cookie(CART_SESSION_COOKIE, cart.session_key, max_age=60 * 60 * 24 * 30, samesite='Lax')
+            _set_cart_session_cookie(response, cart.session_key)
         return response
 
     def post(self, request):
@@ -153,10 +178,11 @@ class CartView(APIView):
         data = _cart_response(cart)
         response = Response(CartSerializer(data).data, status=status.HTTP_201_CREATED)
         if new_session:
-            response.set_cookie(CART_SESSION_COOKIE, cart.session_key, max_age=60 * 60 * 24 * 30, samesite='Lax')
+            _set_cart_session_cookie(response, cart.session_key)
         return response
 
 
+@csrf_enforce
 class CartItemDetailView(APIView):
     permission_classes = [AllowAny]
 
@@ -181,6 +207,7 @@ class CartItemDetailView(APIView):
         return Response(CartSerializer(_cart_response(cart)).data)
 
 
+@csrf_enforce
 class CartClearView(APIView):
     permission_classes = [AllowAny]
 
@@ -190,6 +217,7 @@ class CartClearView(APIView):
         return Response(CartSerializer(_cart_response(cart)).data)
 
 
+@csrf_enforce
 class PlansView(APIView):
     permission_classes = [AllowAny]
 
@@ -198,6 +226,7 @@ class PlansView(APIView):
         return Response(SubscriptionPlanSerializer(plans, many=True).data)
 
 
+@csrf_enforce
 class CheckoutGiftsView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -226,6 +255,7 @@ class CheckoutGiftsView(APIView):
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
+@csrf_enforce
 class CheckoutSubscriptionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -254,9 +284,11 @@ class CheckoutSubscriptionView(APIView):
         return Response({
             'order': OrderSerializer(order).data,
             'me': _me_response(request.user),
+            'csrfToken': get_token(request),
         })
 
 
+@csrf_enforce
 class OrdersView(APIView):
     permission_classes = [IsAuthenticated]
 

@@ -135,6 +135,9 @@ else:
     SESSION_COOKIE_SAMESITE = 'Lax'
     CSRF_COOKIE_SAMESITE = 'Lax'
 
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_NAME = 'csrftoken'
+
 CORS_ALLOW_ALL_ORIGINS = False
 
 CORS_ALLOWED_ORIGINS = [
@@ -187,6 +190,9 @@ for _legacy_origin in (
         CORS_ALLOWED_ORIGINS.append(_legacy_origin)
 if _frontend_url and _frontend_url not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_frontend_url.rstrip('/'))
+
+FRONTEND_URL = _frontend_url
+CROSS_ORIGIN_FRONTEND = _cross_origin_frontend
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

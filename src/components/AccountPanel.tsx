@@ -3,7 +3,7 @@ import { Check } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
-import { api, OrderRow, SubscriptionPlan } from '../api/client';
+import { api, OrderRow, prefetchCsrf, SubscriptionPlan } from '../api/client';
 import { DEMO_EMAIL, DEMO_PASSWORD } from '../constants/demo';
 
 interface AccountPanelProps {
@@ -56,6 +56,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
     if (plan?.slug === slug) return;
     setSubscribing(slug);
     try {
+      await prefetchCsrf();
       const res = await api.checkoutSubscription(slug);
       setMe(res.me);
       showToast(t('plans.subscribed'));
