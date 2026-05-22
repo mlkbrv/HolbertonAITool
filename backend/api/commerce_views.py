@@ -94,6 +94,7 @@ class LogoutView(APIView):
         return Response({'detail': 'Logged out'})
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class MeView(APIView):
     permission_classes = [AllowAny]
 

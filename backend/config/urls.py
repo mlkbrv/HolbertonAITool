@@ -3,6 +3,8 @@ from django.urls import include, path, re_path
 
 from .spa_views import serve_frontend_asset, serve_frontend_index
 
+handler404 = 'config.handlers.handler404'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),

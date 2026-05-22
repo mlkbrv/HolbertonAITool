@@ -26,9 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshMe = useCallback(async () => {
-    await api.health();
-    const data = await api.me();
-    setMe(data);
+    try {
+      await api.health();
+    } catch {
+      /* CSRF cookie optional until first POST */
+    }
+    try {
+      const data = await api.me();
+      setMe(data);
+    } catch {
+      setMe({ user: null, plan: null });
+    }
   }, [setMe]);
 
   useEffect(() => {

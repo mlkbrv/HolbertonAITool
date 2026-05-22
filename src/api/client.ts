@@ -1,5 +1,11 @@
 function resolveApiBase(): string {
   const raw = (import.meta.env.VITE_API_URL || '').trim();
+  const useSameOrigin = !raw || raw === '/api' || raw === '/api/';
+
+  if (useSameOrigin && typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+
   if (raw) {
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
       const base = raw.replace(/\/$/, '');
@@ -9,6 +15,10 @@ function resolveApiBase(): string {
       return `https://${raw.replace(/^https?:\/\//, '')}/api`;
     }
     if (raw.startsWith('/')) return raw.replace(/\/$/, '') || '/api';
+  }
+
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
   }
   return '/api';
 }
@@ -21,10 +31,26 @@ function getCsrfToken(): string {
   return match ? decodeURIComponent(match[1]) : '';
 }
 
+function parseJsonBody<T>(text: string, url: string, status: number): T {
+  const trimmed = text.trim();
+  if (trimmed.startsWith('<')) {
+    throw new Error(
+      `API returned HTML instead of JSON (${status} ${url}). Start Django on port 8000 or deploy the combined app.`
+    );
+  }
+  if (!trimmed) return {} as T;
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    throw new Error(`API returned invalid JSON (${status} ${url})`);
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = (options?.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
     ...(options?.headers as Record<string, string>),
   };
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
@@ -37,11 +63,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers,
     ...options,
   });
+  const text = await res.text();
+  const data = parseJsonBody<Record<string, unknown>>(text, url, res.status);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail || res.statusText);
+    throw new Error((data.detail as string) || res.statusText || `Request failed (${res.status})`);
   }
-  return res.json();
+  return data as T;
 }
 
 export interface Recipient {
