@@ -159,3 +159,10 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '').strip()
+GROQ_MODEL = os.environ.get('GROQ_MODEL', 'openai/gpt-oss-120b').strip() or 'openai/gpt-oss-120b'
+GROQ_TEMPERATURE = float(os.environ.get('GROQ_TEMPERATURE', '1'))
+GROQ_MAX_TOKENS = int(os.environ.get('GROQ_MAX_TOKENS', '8192'))
+GROQ_TOP_P = float(os.environ.get('GROQ_TOP_P', '1'))
+GROQ_REASONING_EFFORT = os.environ.get('GROQ_REASONING_EFFORT', 'medium').strip() or 'medium'

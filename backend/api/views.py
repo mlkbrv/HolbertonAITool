@@ -21,6 +21,7 @@ from .models import (
     Recipient,
     SavedGift,
 )
+from .groq_service import generate_detective_reply, is_groq_configured
 from .serializers import (
     ChatMessageSerializer,
     CorporateOfferSerializer,
@@ -138,6 +139,19 @@ class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
         if not text:
             return Response({'detail': 'text is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        recipient_name = session.recipient.name
+        ai_payload = generate_detective_reply(session, text)
+        if ai_payload:
+            ai_text = ai_payload['text']
+            ai_options = ai_payload['options']
+        else:
+            ai_text = (
+                f"Thanks! I'm analyzing that against {recipient_name}'s profile. "
+                "Would you prefer something **practical** or **experiential**?"
+            )
+            ai_options = ['Practical & Daily', 'Experiential & Unique']
+
+        time_label = timezone.now().strftime('%I:%M %p').lstrip('0')
         user_msg = ChatMessage.objects.create(
             session=session,
             role='user',
@@ -147,12 +161,9 @@ class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
         ai_msg = ChatMessage.objects.create(
             session=session,
             role='ai',
-            text=(
-                "Thanks! I'm analyzing that against Sarah's profile. "
-                "Would you prefer something **practical** or **experiential**?"
-            ),
-            time_label=timezone.now().strftime('%I:%M %p').lstrip('0'),
-            options=['Practical & Daily', 'Experiential & Unique'],
+            text=ai_text,
+            time_label=time_label,
+            options=ai_options,
         )
         return Response(
             ChatMessageSerializer([user_msg, ai_msg], many=True).data,
@@ -189,4 +200,8 @@ class DashboardView(APIView):
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class HealthView(APIView):
     def get(self, request):
-        return Response({'status': 'ok', 'service': 'giftai-api'})
+        return Response({
+            'status': 'ok',
+            'service': 'giftai-api',
+            'ai_enabled': is_groq_configured(),
+        })

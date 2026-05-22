@@ -72,4 +72,21 @@ Reseed DB: Shell → `python manage.py seed_mock_data --force`
 
 Copy `backend/.env.example` to `backend/.env` for local overrides.
 
-Frontend: `VITE_API_URL=/api` (default, uses Vite proxy).
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_API_URL` | No | Frontend API path (default `/api`) |
+| `GROQ_API_KEY` | No | [Groq](https://console.groq.com/keys) API key — real Gift Detective replies |
+| `GROQ_MODEL` | No | Default `openai/gpt-oss-120b` |
+| `GROQ_REASONING_EFFORT` | No | Default `medium` (for reasoning models) |
+
+**Local AI:** add to project root `.env` or `backend/.env`:
+
+```
+GROQ_API_KEY=gsk_...
+```
+
+**Render:** Dashboard → service `giftai` → **Environment** → Add `GROQ_API_KEY` → Save → Redeploy.  
+Blueprint already declares the variable (`sync: false`); you only paste the value in the UI.
+
+Without `GROQ_API_KEY`, Gift Detective uses demo replies.  
+Check: `GET /api/health/` → `"ai_enabled": true` when the key is set.
