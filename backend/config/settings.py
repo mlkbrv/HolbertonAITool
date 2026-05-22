@@ -125,13 +125,15 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = 'Lax'
 
+CORS_ALLOW_ALL_ORIGINS = False
+
 CORS_ALLOWED_ORIGINS = [
     o.strip()
     for o in os.environ.get(
         'CORS_ALLOWED_ORIGINS',
         'http://localhost:3000,http://127.0.0.1:3000',
     ).split(',')
-    if o.strip()
+    if o.strip() and o.strip() != '*'
 ]
 
 _frontend = os.environ.get('FRONTEND_URL', '').strip()
@@ -148,6 +150,16 @@ if os.environ.get('RENDER') == 'true':
     ]
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
 if RENDER_URL and RENDER_URL not in CSRF_TRUSTED_ORIGINS:
