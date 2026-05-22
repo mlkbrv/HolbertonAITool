@@ -32,3 +32,5 @@ services:
         value: openai/gpt-oss-120b
       - key: GROQ_REASONING_EFFORT
         value: medium
+      - key: VITE_SHOW_TEST_TOOLS
+        value: "true"

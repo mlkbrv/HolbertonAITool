@@ -221,7 +221,7 @@ export interface OrderRow {
 }
 
 export const api = {
-  health: () => request<{ status: string }>('/health/'),
+  health: () => request<{ status: string; ai_enabled?: boolean }>('/health/'),
   dashboard: () => request<Dashboard>('/dashboard/'),
   occasionsUpcoming: () => request<{ results?: Occasion[] } | Occasion[]>('/occasions/?upcoming=true'),
   occasionsCalendar: () => request<Occasion[]>('/occasions/calendar/'),

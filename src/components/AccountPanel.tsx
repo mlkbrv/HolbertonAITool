@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { api, OrderRow, SubscriptionPlan } from '../api/client';
+import { DEMO_EMAIL, DEMO_PASSWORD } from '../constants/demo';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -92,7 +93,18 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             {authMode === 'login' ? t('auth.login') : t('auth.register')}
           </button>
         </form>
-        <p className="text-xs text-center text-on-surface-variant">{t('auth.demo')}: demo@giftly.app / demo1234</p>
+        <p className="text-xs text-center text-on-surface-variant">{t('auth.demo')}: {DEMO_EMAIL} / {DEMO_PASSWORD}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setAuthMode('login');
+            setEmail(DEMO_EMAIL);
+            setPassword(DEMO_PASSWORD);
+          }}
+          className="w-full py-2 border border-dashed border-secondary/50 text-secondary rounded-xl text-xs font-semibold cursor-pointer"
+        >
+          {t('test.fillDemo')}
+        </button>
       </div>
     );
   }

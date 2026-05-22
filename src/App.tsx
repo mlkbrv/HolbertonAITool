@@ -16,6 +16,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { NavigationProvider } from './contexts/NavigationContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
+import { TestDemoTools } from './components/TestDemoTools';
 
 function AppContent() {
   const { t } = useLanguage();
@@ -114,6 +115,8 @@ function AppContent() {
             </button>
           </AppModal>
         )}
+
+        <TestDemoTools onNavigate={navigate} onOpenPanel={openPanel} />
 
         {toast && <Toast message={toast} onClose={() => setToast(null)} />}
       </div>
