@@ -124,9 +124,25 @@ class PersonalityProfileViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DetectiveSession.objects.select_related('recipient').prefetch_related('messages')
     serializer_class = DetectiveSessionSerializer
+
+    def _get_or_create_active_session(self):
+        session = (
+            self.get_queryset().filter(is_active=True).order_by('-created_at').first()
+        )
+        if session:
+            return session
+        recipient = Recipient.objects.first()
+        if not recipient:
+            return None
+        return DetectiveSession.objects.create(
+            recipient=recipient,
+            title='Gift Detective Session',
+            is_active=True,
+        )
 
     @action(detail=True, methods=['get', 'post'])
     def messages(self, request, pk=None):
@@ -172,11 +188,9 @@ class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def active(self, request):
-        session = (
-            self.get_queryset().filter(is_active=True).order_by('-created_at').first()
-        )
+        session = self._get_or_create_active_session()
         if not session:
-            return Response({'detail': 'No active session'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'No recipients in database'}, status=status.HTTP_404_NOT_FOUND)
         return Response(DetectiveSessionSerializer(session).data)
 
 

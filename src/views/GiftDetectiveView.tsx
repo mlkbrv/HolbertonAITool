@@ -34,20 +34,31 @@ export function GiftDetectiveView() {
       });
   }, [t]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim()) return;
-    const text = inputValue;
-    setInputValue('');
-    if (!session) {
-      setMessages((prev) => [...prev, { id: Date.now(), role: 'user', text, time_label: 'Just now', options: [] }]);
-      return;
+  const sendText = async (text: string) => {
+    let activeSession = session;
+    if (!activeSession) {
+      try {
+        activeSession = await api.detectiveActive();
+        setSession(activeSession);
+        setMessages(activeSession.messages);
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : 'Chat unavailable');
+        return;
+      }
     }
     try {
-      const newMsgs = await api.sendMessage(session.id, text);
+      const newMsgs = await api.sendMessage(activeSession.id, text);
       setMessages((prev) => [...prev, ...newMsgs]);
-    } catch {
-      setMessages((prev) => [...prev, { id: Date.now(), role: 'user', text, time_label: 'Just now', options: [] }]);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Message failed');
     }
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim()) return;
+    const text = inputValue.trim();
+    setInputValue('');
+    await sendText(text);
   };
 
   const topMatch = profile?.top_match?.gift_set;
@@ -100,7 +111,7 @@ export function GiftDetectiveView() {
                           <button
                             key={i}
                             type="button"
-                            onClick={() => { setInputValue(opt); showToast(opt); }}
+                            onClick={() => sendText(opt)}
                             className="px-4 py-2 bg-white/70 hover:bg-white border border-ai-glow/20 hover:border-ai-glow/50 rounded-full text-xs font-semibold text-primary transition-all shadow-sm cursor-pointer"
                           >
                             {opt}

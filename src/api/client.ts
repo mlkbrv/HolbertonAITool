@@ -46,6 +46,19 @@ function parseJsonBody<T>(text: string, url: string, status: number): T {
   }
 }
 
+function apiErrorMessage(data: Record<string, unknown>, status: number): string {
+  const detail = data.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail[0]) return String(detail[0]);
+  if (status === 403) return 'CSRF or permission denied — refresh the page and try again';
+  return `Request failed (${status})`;
+}
+
+async function ensureCsrfCookie(): Promise<void> {
+  if (getCsrfToken()) return;
+  await fetch(`${API_BASE}/health/`, { credentials: 'include' });
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const method = (options?.method || 'GET').toUpperCase();
   const headers: Record<string, string> = {
@@ -54,6 +67,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...(options?.headers as Record<string, string>),
   };
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+    await ensureCsrfCookie();
     const csrf = getCsrfToken();
     if (csrf) headers['X-CSRFToken'] = csrf;
   }
@@ -66,7 +80,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const text = await res.text();
   const data = parseJsonBody<Record<string, unknown>>(text, url, res.status);
   if (!res.ok) {
-    throw new Error((data.detail as string) || res.statusText || `Request failed (${res.status})`);
+    throw new Error(apiErrorMessage(data, res.status) || res.statusText);
   }
   return data as T;
 }

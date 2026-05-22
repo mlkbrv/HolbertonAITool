@@ -47,6 +47,7 @@ def _me_response(user):
     }
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -70,6 +71,7 @@ class RegisterView(APIView):
         return Response(_me_response(user), status=status.HTTP_201_CREATED)
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -88,6 +90,7 @@ class LoginView(APIView):
         return Response(_me_response(user))
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class LogoutView(APIView):
     def post(self, request):
         logout(request)

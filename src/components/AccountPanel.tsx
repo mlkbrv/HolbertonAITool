@@ -11,7 +11,7 @@ interface AccountPanelProps {
 
 export function AccountPanel({ onClose }: AccountPanelProps) {
   const { t } = useLanguage();
-  const { user, plan, isLoggedIn, login, register, logout, setMe } = useAuth();
+  const { user, plan, isLoggedIn, login, register, logout, setMe, refreshMe } = useAuth();
   const { showToast } = useNavigation();
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -40,6 +40,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
       } else {
         await register(email, password, name);
       }
+      await refreshMe();
       showToast(t('auth.welcome'));
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Auth failed');

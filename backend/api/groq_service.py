@@ -86,6 +86,9 @@ def generate_detective_reply(session, user_text: str) -> dict | None:
     if reasoning:
         kwargs['reasoning_effort'] = reasoning
 
-    completion = client.chat.completions.create(**kwargs)
-    raw = completion.choices[0].message.content or ''
-    return _parse_reply(raw)
+    try:
+        completion = client.chat.completions.create(**kwargs)
+        raw = completion.choices[0].message.content or ''
+        return _parse_reply(raw)
+    except Exception:
+        return None

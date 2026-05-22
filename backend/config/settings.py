@@ -151,7 +151,11 @@ CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
 if RENDER_URL and RENDER_URL not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(RENDER_URL)
+    CSRF_TRUSTED_ORIGINS.append(RENDER_URL.rstrip('/'))
+if RENDER_HOST:
+    _render_origin = f'https://{RENDER_HOST}'
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
 if _frontend and _frontend not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_frontend.rstrip('/'))
 

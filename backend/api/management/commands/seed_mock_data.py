@@ -100,12 +100,26 @@ class Command(BaseCommand):
             )
             self.stdout.write('  Created dashboard insight')
 
+    def _ensure_detective_session(self):
+        if DetectiveSession.objects.filter(is_active=True).exists():
+            return
+        recipient = Recipient.objects.first()
+        if not recipient:
+            return
+        DetectiveSession.objects.create(
+            recipient=recipient,
+            title='Gift Detective Session',
+            is_active=True,
+        )
+        self.stdout.write('  Created active detective session')
+
     @transaction.atomic
     def handle(self, *args, **options):
         self._seed_plans_and_demo_user()
         self._seed_crm_extras()
 
         if Recipient.objects.exists() and not options['force']:
+            self._ensure_detective_session()
             self.stdout.write(self.style.WARNING('Catalog data exists — skip (use --force to reset).'))
             return
 
