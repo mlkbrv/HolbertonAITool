@@ -19,6 +19,17 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+RENDER_HOST = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_HOST and RENDER_HOST not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_HOST)
+
+RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', '')
+if RENDER_URL:
+    from urllib.parse import urlparse
+    parsed = urlparse(RENDER_URL)
+    if parsed.hostname and parsed.hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(parsed.hostname)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -90,7 +101,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -112,7 +123,27 @@ CORS_ALLOWED_ORIGINS = [
     ).split(',')
     if o.strip()
 ]
+
+_frontend = os.environ.get('FRONTEND_URL', '').strip()
+if _frontend:
+    if not _frontend.startswith('http'):
+        _frontend = f'https://{_frontend}'
+    if _frontend not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_frontend.rstrip('/'))
+
+if os.environ.get('RENDER') == 'true':
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r'^https://.*\.onrender\.com$',
+        r'^http://localhost:\d+$',
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS)
+if RENDER_URL and RENDER_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(RENDER_URL)
+if _frontend and _frontend not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_frontend.rstrip('/'))
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

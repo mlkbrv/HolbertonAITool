@@ -1,4 +1,16 @@
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+function resolveApiBase(): string {
+  const raw = (import.meta.env.VITE_API_URL || '/api').trim();
+  if (!raw || raw === '/api') return '/api';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    return raw.endsWith('/api') ? raw.replace(/\/$/, '') : `${raw.replace(/\/$/, '')}/api`;
+  }
+  if (raw.includes('.onrender.com')) {
+    return `https://${raw.replace(/^https?:\/\//, '').replace(/\/$/, '')}/api`;
+  }
+  return raw.startsWith('/') ? raw : `/${raw}`;
+}
+
+const API_BASE = resolveApiBase();
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

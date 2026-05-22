@@ -24,8 +24,19 @@ from api.models import (
 class Command(BaseCommand):
     help = 'Populate database with mock data matching the frontend demo'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Delete existing data and reseed',
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
+        if Recipient.objects.exists() and not options['force']:
+            self.stdout.write(self.style.WARNING('Data already exists — skip seed (use --force to reset).'))
+            return
+
         self.stdout.write('Clearing existing data...')
         for model in [
             ChatMessage,

@@ -49,21 +49,22 @@ Clears and repopulates recipients, gift sets, occasions, saved gifts, detective 
 | `POST /api/detective/sessions/{id}/messages/` | Send chat message |
 | `POST /api/occasions/` | Create occasion |
 
-## Deploy on Render
+## Deploy on Render (free tier)
 
-Uses [`render.yaml`](render.yaml):
+Push repo → Render Dashboard → **New Blueprint** → select `render.yaml`.
 
-1. PostgreSQL database `giftai-db`
-2. Web service `giftai-api` (Django + gunicorn)
-3. Static site `giftai-frontend` (Vite build)
+Everything is automatic:
 
-After deploy, set in Render dashboard:
+| Step | When | What |
+|------|------|------|
+| Build | deploy | `pip install`, `collectstatic` |
+| Start | every boot | `migrate` → `seed_mock_data` (only if DB empty) → gunicorn |
+| CORS / hosts | auto | `*.onrender.com` + linked frontend URL |
+| Frontend API URL | auto | `VITE_API_URL` from `giftai-api` service |
 
-- **giftai-api** → `ALLOWED_HOSTS` = your API hostname
-- **giftai-api** → `CORS_ALLOWED_ORIGINS` = frontend URL
-- **giftai-frontend** → `VITE_API_URL` = `https://your-api.onrender.com/api`
+No manual env vars required for a standard Blueprint deploy.
 
-`postDeployCommand` runs `seed_mock_data` automatically.
+Reseed DB: Render Shell → `python manage.py seed_mock_data --force`
 
 ## Environment
 
