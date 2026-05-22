@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, UploadCloud, Link as LinkIcon, Brain } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, UploadCloud, Instagram, Brain } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -22,6 +22,7 @@ export function HomeView() {
   const { navigate, showToast, openPanel } = useNavigation();
   const { addItem } = useCart();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [instagramUrl, setInstagramUrl] = useState('');
 
   useEffect(() => {
     api.dashboard().then(setDashboard).catch(() => setDashboard(null));
@@ -45,14 +46,35 @@ export function HomeView() {
                 {t('home.heroTitle1')} <br />{t('home.heroTitle2')}
               </h2>
               <p className="text-lg text-on-surface-variant mb-10 max-w-lg">{t('home.heroSubtitle')}</p>
-              <div className="flex flex-wrap gap-4">
-                <button type="button" onClick={() => navigate('detective')} className="px-8 py-4 bg-accent text-on-accent rounded-full font-semibold flex items-center gap-3 hover:scale-105 transition-transform cursor-pointer">
+              <div className="flex flex-col gap-3 max-w-lg">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={instagramUrl}
+                    onChange={(e) => setInstagramUrl(e.target.value)}
+                    placeholder={t('detective.instagramPlaceholder')}
+                    className="flex-1 px-4 py-3 rounded-full border border-outline-variant/40 text-sm bg-white/90"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = instagramUrl.trim();
+                      if (!url) {
+                        showToast(t('detective.instagramPlaceholder'));
+                        return;
+                      }
+                      sessionStorage.setItem('giftly:instagram', url);
+                      navigate('detective');
+                    }}
+                    className="px-6 py-3 bg-[#E1306C] text-white rounded-full font-semibold flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer shrink-0"
+                  >
+                    <Instagram className="w-5 h-5" />
+                    {t('home.instagramAnalyze')}
+                  </button>
+                </div>
+                <button type="button" onClick={() => navigate('detective')} className="px-8 py-4 bg-accent text-on-accent rounded-full font-semibold flex items-center gap-3 hover:scale-105 transition-transform cursor-pointer w-max">
                   <UploadCloud className="w-5 h-5" />
                   {t('home.uploadSources')}
-                </button>
-                <button type="button" onClick={() => { navigate('detective'); showToast(t('home.pasteLink')); }} className="px-8 py-4 glass text-primary rounded-full font-semibold border-secondary flex items-center gap-3 hover:bg-white/90 transition-all cursor-pointer">
-                  <LinkIcon className="w-5 h-5" />
-                  {t('home.pasteLink')}
                 </button>
               </div>
             </div>

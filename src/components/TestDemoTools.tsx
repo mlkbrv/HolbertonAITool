@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { api } from '../api/client';
-import { DEMO_CHAT_MESSAGE, DEMO_EMAIL, DEMO_GIFT_SET_ID, DEMO_PASSWORD } from '../constants/demo';
+import { DEMO_CHAT_MESSAGE, DEMO_EMAIL, DEMO_GIFT_SET_ID, DEMO_INSTAGRAM, DEMO_PASSWORD } from '../constants/demo';
 import { ViewState } from '../types';
 
 const SHOW_TEST =
@@ -75,6 +75,18 @@ export function TestDemoTools({ onNavigate, onOpenPanel }: TestDemoToolsProps) {
               className="w-full py-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
             >
               {t('test.openAccount')}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                sessionStorage.setItem('giftly:instagram', DEMO_INSTAGRAM);
+                onNavigate('detective');
+                showToast(t('test.chatHint'));
+              }}
+              className="w-full py-2 px-3 bg-[#E1306C]/80 hover:bg-[#E1306C] rounded-xl text-xs font-semibold cursor-pointer disabled:opacity-50"
+            >
+              {t('test.instagramDemo')}
             </button>
             <button
               type="button"

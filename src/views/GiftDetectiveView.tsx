@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Paperclip, Send, Sparkles, User, BrainCircuit } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Paperclip, Send, Sparkles, User, BrainCircuit, Instagram } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useCart } from '../contexts/CartContext';
 import { api, ChatMessage, DetectiveSession, PersonalityProfile, unwrapList } from '../api/client';
+import { isInstagramInput } from '../lib/instagram';
 
 export function GiftDetectiveView() {
   const { t } = useLanguage();
@@ -13,6 +14,9 @@ export function GiftDetectiveView() {
   const [session, setSession] = useState<DetectiveSession | null>(null);
   const [profile, setProfile] = useState<PersonalityProfile | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [analyzingIg, setAnalyzingIg] = useState(false);
+  const pendingIg = useRef<string | null>(sessionStorage.getItem('giftly:instagram'));
 
   useEffect(() => {
     api.detectiveActive()
@@ -34,19 +38,53 @@ export function GiftDetectiveView() {
       });
   }, [t]);
 
-  const sendText = async (text: string) => {
-    let activeSession = session;
-    if (!activeSession) {
-      try {
-        activeSession = await api.detectiveActive();
-        setSession(activeSession);
-        setMessages(activeSession.messages);
-      } catch (e) {
-        showToast(e instanceof Error ? e.message : 'Chat unavailable');
-        return;
+  const ensureSession = async () => {
+    if (session) return session;
+    const activeSession = await api.detectiveActive();
+    setSession(activeSession);
+    setMessages(activeSession.messages);
+    return activeSession;
+  };
+
+  const analyzeInstagramUrl = async (url: string) => {
+    setAnalyzingIg(true);
+    try {
+      const activeSession = await ensureSession();
+      const res = await api.analyzeInstagram(activeSession.id, url);
+      setMessages((prev) => [...prev, ...res.messages]);
+      if (res.profile) {
+        const top = res.suggested_gifts[0];
+        setProfile(
+          top
+            ? { ...res.profile, top_match: { gift_set: top.gift_set, match_percent: top.match_percent } }
+            : res.profile
+        );
       }
+      showToast(t('detective.instagramDone'));
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : t('detective.instagramError'));
+    } finally {
+      setAnalyzingIg(false);
+    }
+  };
+
+  useEffect(() => {
+    const url = pendingIg.current;
+    if (!url || !session) return;
+    pendingIg.current = null;
+    sessionStorage.removeItem('giftly:instagram');
+    setInstagramUrl(url);
+    analyzeInstagramUrl(url);
+  }, [session]);
+
+  const sendText = async (text: string) => {
+    if (isInstagramInput(text)) {
+      setInstagramUrl(text);
+      await analyzeInstagramUrl(text);
+      return;
     }
     try {
+      const activeSession = await ensureSession();
       const newMsgs = await api.sendMessage(activeSession.id, text);
       setMessages((prev) => [...prev, ...newMsgs]);
     } catch (e) {
@@ -78,6 +116,31 @@ export function GiftDetectiveView() {
             <span className="w-2 h-2 rounded-full bg-ai-glow animate-pulse"></span>
             <span className="text-xs font-semibold text-on-tertiary-fixed">{t('detective.live')}</span>
           </div>
+        </div>
+
+        <div className="px-6 md:px-8 py-4 bg-gradient-to-r from-[#fdf2f8] to-soft-cream border-b border-outline-variant/10">
+          <p className="text-xs font-semibold text-on-surface-variant mb-2 flex items-center gap-1.5">
+            <Instagram className="w-4 h-4 text-[#E1306C]" />
+            {t('detective.instagramTitle')}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="url"
+              value={instagramUrl}
+              onChange={(e) => setInstagramUrl(e.target.value)}
+              placeholder={t('detective.instagramPlaceholder')}
+              className="flex-1 px-4 py-2.5 rounded-xl border border-outline-variant/30 text-sm bg-white"
+            />
+            <button
+              type="button"
+              disabled={!instagramUrl.trim() || analyzingIg}
+              onClick={() => analyzeInstagramUrl(instagramUrl.trim())}
+              className="px-5 py-2.5 bg-[#E1306C] text-white rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50 whitespace-nowrap"
+            >
+              {analyzingIg ? '...' : t('detective.instagramAnalyze')}
+            </button>
+          </div>
+          <p className="text-[10px] text-on-surface-variant mt-2">{t('detective.instagramHint')}</p>
         </div>
 
         {/* Message Thread */}

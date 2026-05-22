@@ -240,6 +240,17 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+  analyzeInstagram: (sessionId: number, url: string) =>
+    request<{
+      username: string;
+      public_hints: string;
+      messages: ChatMessage[];
+      profile: PersonalityProfile | null;
+      suggested_gifts: { gift_set: GiftSet; match_percent: number }[];
+    }>(`/detective/sessions/${sessionId}/analyze_instagram/`, {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    }),
   createOccasion: (data: {
     title: string;
     recipient_id?: number;

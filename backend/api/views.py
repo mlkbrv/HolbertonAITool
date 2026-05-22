@@ -19,9 +19,12 @@ from .models import (
     Occasion,
     PersonalityProfile,
     Recipient,
+    RecipientGiftMatch,
     SavedGift,
 )
-from .groq_service import generate_detective_reply, is_groq_configured
+from .groq_service import analyze_instagram_profile, generate_detective_reply, is_groq_configured
+from .profile_analysis import apply_instagram_analysis
+from .social_sources import fetch_instagram_public_hints, parse_instagram_username
 from .serializers import (
     ChatMessageSerializer,
     CorporateOfferSerializer,
@@ -192,6 +195,108 @@ class DetectiveSessionViewSet(viewsets.ReadOnlyModelViewSet):
         if not session:
             return Response({'detail': 'No recipients in database'}, status=status.HTTP_404_NOT_FOUND)
         return Response(DetectiveSessionSerializer(session).data)
+
+    @action(detail=True, methods=['post'])
+    def analyze_instagram(self, request, pk=None):
+        session = self.get_object()
+        url = (request.data.get('url') or request.data.get('text') or '').strip()
+        username = parse_instagram_username(url)
+        if not username:
+            return Response(
+                {'detail': 'Invalid Instagram URL or @username'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        hints = fetch_instagram_public_hints(username)
+        gifts = GiftSet.objects.all().order_by('-match_percent')[:16]
+        catalog = '\n'.join(
+            f"- id={g.id} | {g.title} | ${g.price} | {g.description[:100]}"
+            for g in gifts
+        )
+        analysis = analyze_instagram_profile(
+            username,
+            f'https://www.instagram.com/{username}/',
+            hints,
+            catalog or '- id=1 | Demo gift',
+        )
+
+        if analysis:
+            ai_text = str(analysis['text']).strip()
+            ai_options = [str(o) for o in (analysis.get('options') or [])[:4] if o]
+            apply_instagram_analysis(session.recipient, analysis)
+        else:
+            hint_note = (
+                f' Public page hints: {hints[:200]}...'
+                if hints
+                else ' Could not read public page (private/login wall).'
+            )
+            ai_text = (
+                f"I found **@{username}** on Instagram.{hint_note}\n\n"
+                'Based on typical lifestyle signals, I would look at **wellness**, '
+                '**coffee ritual**, or **experience** gifts. '
+                'Add **GROQ_API_KEY** for a deeper AI read of their profile.'
+            )
+            ai_options = ['Wellness gift', 'Coffee & home', 'Experience']
+            profile, _ = PersonalityProfile.objects.get_or_create(recipient=session.recipient)
+            if hints:
+                profile.confidence_percent = min(85, profile.confidence_percent + 10)
+                profile.save(update_fields=['confidence_percent'])
+
+        user_msg = ChatMessage.objects.create(
+            session=session,
+            role='user',
+            text=f'Analyze Instagram: https://www.instagram.com/{username}/',
+            time_label='Just now',
+        )
+        ai_msg = ChatMessage.objects.create(
+            session=session,
+            role='ai',
+            text=ai_text,
+            time_label=timezone.now().strftime('%I:%M %p').lstrip('0'),
+            options=ai_options,
+        )
+
+        profile = (
+            PersonalityProfile.objects.filter(recipient=session.recipient)
+            .select_related('recipient')
+            .prefetch_related('interests', 'tags')
+            .first()
+        )
+        top_match = (
+            RecipientGiftMatch.objects.filter(recipient=session.recipient)
+            .select_related('gift_set')
+            .order_by('-match_percent')
+            .first()
+        )
+        suggested = []
+        if top_match:
+            suggested.append(
+                {
+                    'gift_set': GiftSetSerializer(top_match.gift_set).data,
+                    'match_percent': top_match.match_percent,
+                }
+            )
+        for m in (
+            RecipientGiftMatch.objects.filter(recipient=session.recipient, label='Instagram match')
+            .select_related('gift_set')
+            .order_by('-match_percent')[:3]
+        ):
+            if top_match and m.gift_set_id == top_match.gift_set_id:
+                continue
+            suggested.append(
+                {'gift_set': GiftSetSerializer(m.gift_set).data, 'match_percent': m.match_percent}
+            )
+
+        return Response(
+            {
+                'username': username,
+                'public_hints': hints,
+                'messages': ChatMessageSerializer([user_msg, ai_msg], many=True).data,
+                'profile': PersonalityProfileSerializer(profile).data if profile else None,
+                'suggested_gifts': suggested,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class CorporateOfferViewSet(viewsets.ReadOnlyModelViewSet):

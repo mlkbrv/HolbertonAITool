@@ -92,3 +92,61 @@ def generate_detective_reply(session, user_text: str) -> dict | None:
         return _parse_reply(raw)
     except Exception:
         return None
+
+
+def _groq_json_completion(system: str, user: str) -> dict | None:
+    api_key = getattr(settings, 'GROQ_API_KEY', '')
+    if not api_key:
+        return None
+    from groq import Groq
+
+    client = Groq(api_key=api_key)
+    model = getattr(settings, 'GROQ_MODEL', 'openai/gpt-oss-120b')
+    kwargs: dict = {
+        'model': model,
+        'messages': [
+            {'role': 'system', 'content': system},
+            {'role': 'user', 'content': user},
+        ],
+        'temperature': 0.7,
+        'max_completion_tokens': 4096,
+        'top_p': 1,
+        'stream': False,
+    }
+    reasoning = getattr(settings, 'GROQ_REASONING_EFFORT', 'medium')
+    if reasoning:
+        kwargs['reasoning_effort'] = reasoning
+    try:
+        completion = client.chat.completions.create(**kwargs)
+        raw = completion.choices[0].message.content or ''
+        text = raw.strip()
+        fence = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text)
+        if fence:
+            text = fence.group(1).strip()
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def analyze_instagram_profile(username: str, profile_url: str, public_hints: str, gift_catalog: str) -> dict | None:
+    system = (
+        'You are Giftly AI analyzing a public Instagram profile to recommend gifts. '
+        'Use username, URL, and any public hints. If hints are empty, infer plausible '
+        'aesthetic/lifestyle interests from the handle and typical IG gift-buyer context, '
+        'and say confidence is lower. '
+        'Reply ONLY with valid JSON:\n'
+        '{"text":"markdown summary for user","options":["chip1"],"trait":"str","mood":"str",'
+        '"confidence_percent":0-100,"interests":[{"name":"str","score_percent":0-100,"level":"high|medium|low"}],'
+        '"tags":["str"],"gift_picks":[{"gift_set_id":number,"match_percent":0-100,"reason":"str"}]}\n'
+        'Pick 2-4 gift_set_id values from the catalog only. Keep text under 150 words.'
+    )
+    user = (
+        f'Instagram: https://www.instagram.com/{username}/\n'
+        f'Username: @{username}\n'
+        f'Public metadata:\n{public_hints or "(not available — profile private or blocked)"}\n\n'
+        f'Gift catalog:\n{gift_catalog}'
+    )
+    data = _groq_json_completion(system, user)
+    if not isinstance(data, dict) or not data.get('text'):
+        return None
+    return data
